@@ -15,6 +15,16 @@ pub const MAX_BLOCK_SERIALIZED_SIZE: usize = 4_000_000;
 /// This is the primary limit for SegWit blocks
 pub const MAX_BLOCK_WEIGHT: usize = 4_000_000;
 
+/// Upper bound on the number of transactions in any consensus-valid block.
+///
+/// Consensus does not fix a tx-count limit; it follows from `MAX_BLOCK_WEIGHT` (BIP141).
+/// Mainnet has included blocks with **12k+** transactions (e.g. dense 2015–2016 spam eras);
+/// a 10k cap incorrectly rejects valid blocks and panicked in `compute_block_tx_ids`.
+///
+/// Uses a loose per-tx minimum weight (~60 WU) so `MAX_BLOCK_WEIGHT / 60` safely exceeds
+/// any block that could pass weight check (real minimum per tx is higher).
+pub const MAX_TRANSACTIONS_PER_BLOCK: usize = MAX_BLOCK_WEIGHT / 60;
+
 /// Maximum block size (deprecated - use MAX_BLOCK_WEIGHT for SegWit blocks)
 /// Kept for backward compatibility
 #[deprecated(note = "Use MAX_BLOCK_WEIGHT for SegWit blocks")]
@@ -191,13 +201,13 @@ pub const BIP16_P2SH_ACTIVATION_REGTEST: u64 = 0;
 /// BIP34: Block Height in Coinbase - Mainnet activation height
 ///
 /// Starting at this block, coinbase scriptSig must contain the block height.
-/// Reference: BIP34, consensus activation at block 227,836
-pub const BIP34_ACTIVATION_MAINNET: u64 = 227_836;
+/// Reference: Bitcoin Core `consensus.BIP34Height` (`CMainParams` in `kernel/chainparams.cpp`).
+pub const BIP34_ACTIVATION_MAINNET: u64 = 227_931;
 
 /// BIP34: Block Height in Coinbase - Testnet activation height
 ///
-/// Reference: BIP34, consensus activation at block 211,111
-pub const BIP34_ACTIVATION_TESTNET: u64 = 211_111;
+/// Reference: Bitcoin Core `consensus.BIP34Height` for `CTestNetParams` (`chainparams.cpp`).
+pub const BIP34_ACTIVATION_TESTNET: u64 = 21_111;
 
 /// BIP34: Block Height in Coinbase - Regtest activation height
 ///
@@ -228,6 +238,26 @@ pub const BIP66_ACTIVATION_REGTEST: u64 = 0;
 /// Reference: BIP65, consensus activation at block 388,381
 pub const BIP65_ACTIVATION_MAINNET: u64 = 388_381;
 
+/// BIP65: OP_CHECKLOCKTIMEVERIFY (CLTV) - Testnet activation height
+///
+/// Reference: Bitcoin Core `consensus.BIP65Height` for `CTestNetParams` (`kernel/chainparams.cpp`).
+pub const BIP65_ACTIVATION_TESTNET: u64 = 581_885;
+
+/// BIP112/BIP113: CHECKSEQUENCEVERIFY (CSV) - Mainnet activation height
+///
+/// `SCRIPT_VERIFY_CHECKSEQUENCEVERIFY` (0x400). **Not** the same as BIP147 (NULLDUMMY).
+/// Reference: Bitcoin Core `consensus.nCSVEnabled` = 419328 on mainnet.
+pub const BIP112_CSV_ACTIVATION_MAINNET: u64 = 419_328;
+
+/// BIP112/BIP113: CSV - Testnet activation height (Bitcoin Core testnet3)
+///
+/// Reference: Bitcoin Core `consensus.CSVHeight` for `CTestNetParams` (`kernel/chainparams.cpp`).
+/// Testnet CSV activates later than mainnet (770112), unlike some other deployments.
+pub const BIP112_CSV_ACTIVATION_TESTNET: u64 = 770_112;
+
+/// BIP112/BIP113: CSV - Regtest (active from genesis for typical regtest chains)
+pub const BIP112_CSV_ACTIVATION_REGTEST: u64 = 0;
+
 /// BIP147: NULLDUMMY Enforcement - Mainnet activation height
 ///
 /// Starting at this block, dummy stack elements must be empty (OP_0).
@@ -250,6 +280,18 @@ pub const SEGWIT_ACTIVATION_MAINNET: u64 = 481_824;
 /// Starting at this block, Taproot is active.
 /// Reference: BIP341, consensus activation at block 709,632
 pub const TAPROOT_ACTIVATION_MAINNET: u64 = 709_632;
+
+/// SegWit (BIP141) - Testnet activation height (Bitcoin Core testnet3 `consensus.SegwitHeight`)
+///
+/// Reference: Bitcoin Core `kernel/chainparams.cpp` (`CTestNetParams`).
+/// Same height as BIP147 (NULLDUMMY) on testnet3.
+pub const SEGWIT_ACTIVATION_TESTNET: u64 = 834_624;
+
+/// Taproot (BIP341) - Testnet activation height (Bitcoin Core testnet3)
+///
+/// Reference: Taproot buried height implied by `MinBIP9WarningHeight - 2016` in `CTestNetParams`
+/// (`kernel/chainparams.cpp`).
+pub const TAPROOT_ACTIVATION_TESTNET: u64 = 2_011_968;
 
 /// CTV (BIP119) - Mainnet activation height
 ///
@@ -318,6 +360,23 @@ pub const GENESIS_BLOCK_HASH: [u8; 32] = [
     0x4f, 0xf7, 0x63, 0xae, 0x46, 0xa2, 0xa6, 0xc1, 0x72, 0xb3, 0xf1, 0xb6, 0x0a, 0x8c, 0xe2, 0x6f,
 ];
 
+const fn reverse_hash32(h: [u8; 32]) -> [u8; 32] {
+    let mut out = [0u8; 32];
+    let mut i = 0usize;
+    while i < 32 {
+        out[i] = h[31 - i];
+        i += 1;
+    }
+    out
+}
+
+/// Genesis block hash in **internal / wire** byte order.
+///
+/// Bitcoin displays block hashes with the leading zero bytes first ([`GENESIS_BLOCK_HASH`]).
+/// P2P messages (`GetHeaders` locators), block header `prev_block_hash`, and typical
+/// `double_sha256(header)` output use this reversed layout.
+pub const GENESIS_BLOCK_HASH_INTERNAL: [u8; 32] = reverse_hash32(GENESIS_BLOCK_HASH);
+
 /// Genesis block timestamp (Unix timestamp)
 ///
 /// The timestamp of the genesis block: January 3, 2009, 18:15:05 UTC
@@ -379,3 +438,31 @@ pub const L_ELEMENT: u64 = 520;
 // These proofs directly verify that constant values match the Orange Paper
 // Section 4 (Consensus Constants) specification. This creates a cryptographic
 // lock between the Orange Paper (IR) and blvm-consensus implementation.
+
+#[cfg(test)]
+mod genesis_hash_byte_order_tests {
+    use super::{GENESIS_BLOCK_HASH, GENESIS_BLOCK_HASH_INTERNAL};
+
+    #[test]
+    fn genesis_internal_is_reversed_display_form() {
+        let mut rev = GENESIS_BLOCK_HASH;
+        rev.reverse();
+        assert_eq!(rev, GENESIS_BLOCK_HASH_INTERNAL);
+    }
+}
+
+#[cfg(test)]
+mod max_tx_per_block_tests {
+    use super::MAX_TRANSACTIONS_PER_BLOCK;
+
+    /// Regression: mainnet includes blocks with 12k+ txs (e.g. 2015–2016 spam waves).
+    /// A 10k cap panicked in parallel `compute_block_tx_ids` during IBD.
+    #[test]
+    fn max_transactions_per_block_covers_observed_mainnet_dense_blocks() {
+        assert!(
+            MAX_TRANSACTIONS_PER_BLOCK >= 13_000,
+            "bound {} too low for known mainnet blocks",
+            MAX_TRANSACTIONS_PER_BLOCK
+        );
+    }
+}

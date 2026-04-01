@@ -62,16 +62,67 @@ pub type ByteString = Vec<u8>;
 /// For Taproot: Vector containing control block and script path data.
 pub type Witness = Vec<ByteString>;
 
-/// Shareable script_pubkey for UTXO: Arc<[u8]> to avoid clones in IBD apply path.
-/// Clone is O(1); serialization format identical to ByteString for on-disk compatibility.
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct SharedByteString(std::sync::Arc<[u8]>);
+/// Maximum script length stored inline (no `Arc` allocation). Bincode on-disk layout unchanged.
+const SHARED_BYTE_INLINE_CAP: usize = 64;
+
+#[derive(Clone)]
+enum SharedRepr {
+    Inline {
+        len: u8,
+        data: [u8; SHARED_BYTE_INLINE_CAP],
+    },
+    Shared(std::sync::Arc<[u8]>),
+}
+
+/// Shareable script_pubkey for UTXO: small scripts use inline storage; longer use `Arc<[u8]>`.
+/// Clone is cheap (inline copies up to 64 bytes, shared is `Arc::clone`). Serde matches `ByteString`.
+#[derive(Clone)]
+pub struct SharedByteString(SharedRepr);
 
 impl std::fmt::Debug for SharedByteString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("SharedByteString")
-            .field(&self.0.as_ref())
+            .field(&self.as_slice())
             .finish()
+    }
+}
+
+impl PartialEq for SharedByteString {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.as_slice() == other.as_slice()
+    }
+}
+
+impl Eq for SharedByteString {}
+
+impl std::hash::Hash for SharedByteString {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.as_slice().hash(state);
+    }
+}
+
+impl SharedByteString {
+    #[inline]
+    fn as_slice(&self) -> &[u8] {
+        match &self.0 {
+            SharedRepr::Inline { len, data } => &data[..*len as usize],
+            SharedRepr::Shared(a) => a,
+        }
+    }
+
+    #[inline]
+    fn from_bytes(v: &[u8]) -> Self {
+        if v.len() <= SHARED_BYTE_INLINE_CAP {
+            let mut data = [0u8; SHARED_BYTE_INLINE_CAP];
+            data[..v.len()].copy_from_slice(v);
+            Self(SharedRepr::Inline {
+                len: v.len() as u8,
+                data,
+            })
+        } else {
+            Self(SharedRepr::Shared(std::sync::Arc::from(v)))
+        }
     }
 }
 
@@ -79,56 +130,64 @@ impl std::ops::Deref for SharedByteString {
     type Target = [u8];
     #[inline]
     fn deref(&self) -> &[u8] {
-        &self.0
+        self.as_slice()
     }
 }
 
 impl Serialize for SharedByteString {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        self.0.as_ref().serialize(s)
+        self.as_slice().serialize(s)
     }
 }
 
 impl<'de> Deserialize<'de> for SharedByteString {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let v: Vec<u8> = Deserialize::deserialize(d)?;
-        Ok(Self(std::sync::Arc::from(v.into_boxed_slice())))
+        Ok(Self::from_bytes(&v))
     }
 }
 
 impl From<ByteString> for SharedByteString {
     #[inline]
     fn from(v: ByteString) -> Self {
-        Self(std::sync::Arc::from(v.into_boxed_slice()))
+        Self::from_bytes(v.as_slice())
     }
 }
 
 impl From<&[u8]> for SharedByteString {
     #[inline]
     fn from(v: &[u8]) -> Self {
-        Self(std::sync::Arc::from(v))
+        Self::from_bytes(v)
     }
 }
 
 impl Default for SharedByteString {
     #[inline]
     fn default() -> Self {
-        Self(std::sync::Arc::from([]))
+        Self(SharedRepr::Inline {
+            len: 0,
+            data: [0u8; SHARED_BYTE_INLINE_CAP],
+        })
     }
 }
 
 impl AsRef<[u8]> for SharedByteString {
     #[inline]
     fn as_ref(&self) -> &[u8] {
-        &self.0
+        self.as_slice()
     }
 }
 
 impl SharedByteString {
-    /// Get the underlying Arc<[u8]> for storage in script context (avoids clone of bytes).
+    /// Owning clone of bytes as `Arc<[u8]>`. May allocate once when storing an inline script.
     #[inline]
     pub fn as_arc(&self) -> std::sync::Arc<[u8]> {
-        std::sync::Arc::clone(&self.0)
+        match &self.0 {
+            SharedRepr::Shared(a) => std::sync::Arc::clone(a),
+            SharedRepr::Inline { len, data } => {
+                std::sync::Arc::from(data[..*len as usize].to_vec().into_boxed_slice())
+            }
+        }
     }
 }
 
@@ -195,7 +254,9 @@ pub enum ForkId {
     Bip66,
     /// BIP65: OP_CHECKLOCKTIMEVERIFY.
     Bip65,
-    /// BIP147: NULLDUMMY + CSV (BIP112).
+    /// BIP112/BIP113: OP_CHECKSEQUENCEVERIFY (CSV). Activates at 419328 mainnet — **before** BIP147.
+    Bip112,
+    /// BIP147: SCRIPT_VERIFY_NULLDUMMY (SegWit deployment; mainnet 481824).
     Bip147,
     /// BIP141: SegWit.
     SegWit,
