@@ -4,7 +4,8 @@
 *.pdb
 **/*.rmeta
 
-# Cargo.lock is tracked: publish workflow commits it and cargo package requires a clean tree.
+# Library crate: lockfile not committed (standard Rust); use blvm meta crate for locked builds.
+Cargo.lock
 
 # Coverage reports and profiling
 /coverage/

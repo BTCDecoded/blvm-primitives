@@ -190,12 +190,6 @@ jobs:
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Regenerate Cargo.lock (dependencies)
-        if: steps.gate.outputs.do_release == 'true'
-        run: |
-          rm -f Cargo.lock
-          cargo update
-
       - name: Update version in Cargo.toml
         if: steps.gate.outputs.do_release == 'true'
         run: |
@@ -211,12 +205,6 @@ jobs:
           ' Cargo.toml > Cargo.toml.tmp && mv Cargo.toml.tmp Cargo.toml
           echo "Updated Cargo.toml to version ${VERSION}"
 
-      - name: Regenerate Cargo.lock after version bump
-        if: steps.gate.outputs.do_release == 'true'
-        run: |
-          rm -f Cargo.lock
-          cargo update
-
       - name: Pre-release smoke test
         if: steps.gate.outputs.do_release == 'true'
         run: |
@@ -229,9 +217,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Cargo.toml
-          if [ -f Cargo.lock ]; then
-            git add -f Cargo.lock
-          fi
           if git diff --staged --quiet; then
             echo "No Cargo.toml changes to commit"
           else
