@@ -4,8 +4,7 @@
 *.pdb
 **/*.rmeta
 
-# Cargo.lock for libraries (workspace or app controls lockfile)
-Cargo.lock
+# Cargo.lock is tracked: publish workflow commits it and cargo package requires a clean tree.
 
 # Coverage reports and profiling
 /coverage/
@@ -87,6 +86,3 @@ pnpm-lock.yaml
 # Misc
 .cache/
 *.pid
-
-# Local Cargo configuration (for local development only)
-.cargo/config.toml

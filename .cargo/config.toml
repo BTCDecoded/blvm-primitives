@@ -1,0 +1,4 @@
+# Default linker for Linux x86_64. CI uses a clean CARGO_HOME so runner ~/.cargo
+# rustflags (e.g. -fuse-ld=mold) are not merged with this crate.
+[target.x86_64-unknown-linux-gnu]
+linker = "cc"
