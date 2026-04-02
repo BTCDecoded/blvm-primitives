@@ -39,7 +39,7 @@ jobs:
           echo "CARGO_HOME=$CI_CARGO_HOME" >> "$GITHUB_ENV"
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
         with:
           toolchain: 1.89.0
 
@@ -115,7 +115,7 @@ jobs:
 
       - name: Install Rust
         if: steps.gate.outputs.do_release == 'true'
-        uses: dtolnay/rust-toolchain@master
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
         with:
           toolchain: 1.89.0
 
