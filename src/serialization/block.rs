@@ -24,7 +24,9 @@ pub enum BlockParseError {
 impl std::fmt::Display for BlockParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BlockParseError::InsufficientBytes => write!(f, "Insufficient bytes to parse block header"),
+            BlockParseError::InsufficientBytes => {
+                write!(f, "Insufficient bytes to parse block header")
+            }
             BlockParseError::InvalidVersion => write!(f, "Invalid block version"),
             BlockParseError::InvalidTimestamp => write!(f, "Invalid block timestamp"),
             BlockParseError::InvalidBits => write!(f, "Invalid block bits"),
@@ -61,7 +63,10 @@ pub fn deserialize_block_header(data: &[u8]) -> Result<BlockHeader> {
     let mut offset = 0;
 
     let version = i32::from_le_bytes([
-        data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+        data[offset],
+        data[offset + 1],
+        data[offset + 2],
+        data[offset + 3],
     ]) as i64;
     offset += 4;
 
@@ -74,17 +79,26 @@ pub fn deserialize_block_header(data: &[u8]) -> Result<BlockHeader> {
     offset += 32;
 
     let timestamp = u32::from_le_bytes([
-        data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+        data[offset],
+        data[offset + 1],
+        data[offset + 2],
+        data[offset + 3],
     ]) as u64;
     offset += 4;
 
     let bits = u32::from_le_bytes([
-        data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+        data[offset],
+        data[offset + 1],
+        data[offset + 2],
+        data[offset + 3],
     ]) as u64;
     offset += 4;
 
     let nonce = u32::from_le_bytes([
-        data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+        data[offset],
+        data[offset + 1],
+        data[offset + 2],
+        data[offset + 3],
     ]) as u64;
 
     Ok(BlockHeader {
@@ -185,11 +199,7 @@ pub fn serialize_block_with_witnesses(
 
 /// Serialize a block without witness data (convenience for non-SegWit blocks)
 pub fn serialize_block(block: &Block) -> Vec<u8> {
-    let witnesses: Vec<Vec<Witness>> = block
-        .transactions
-        .iter()
-        .map(|_| Vec::new())
-        .collect();
+    let witnesses: Vec<Vec<Witness>> = block.transactions.iter().map(|_| Vec::new()).collect();
     serialize_block_with_witnesses(block, &witnesses, false)
 }
 

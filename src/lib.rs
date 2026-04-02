@@ -8,10 +8,10 @@
 pub mod config;
 pub mod constants;
 pub mod crypto;
-pub mod ibd_tuning;
-pub mod orange_paper_helpers;
 pub mod error;
+pub mod ibd_tuning;
 pub mod opcodes;
+pub mod orange_paper_helpers;
 pub mod serialization;
 pub mod spec_types;
 pub mod types;

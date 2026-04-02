@@ -82,7 +82,11 @@ pub fn serialize_transaction_into(dst: &mut Vec<u8>, tx: &Transaction) -> usize 
 
 /// Serialize a transaction in SegWit wire format
 pub fn serialize_transaction_with_witness(tx: &Transaction, witnesses: &[Witness]) -> Vec<u8> {
-    assert_eq!(witnesses.len(), tx.inputs.len(), "witness count must match input count");
+    assert_eq!(
+        witnesses.len(),
+        tx.inputs.len(),
+        "witness count must match input count"
+    );
     let mut result = Vec::new();
     result.extend_from_slice(&(tx.version as i32).to_le_bytes());
     result.push(0x00);
@@ -122,13 +126,14 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
         )));
     }
     let version = i32::from_le_bytes([
-        data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+        data[offset],
+        data[offset + 1],
+        data[offset + 2],
+        data[offset + 3],
     ]) as u64;
     offset += 4;
 
-    let is_segwit = data.len() >= offset + 2
-        && data[offset] == 0x00
-        && data[offset + 1] == 0x01;
+    let is_segwit = data.len() >= offset + 2 && data[offset] == 0x00 && data[offset + 1] == 0x01;
 
     if is_segwit {
         offset += 2;
@@ -159,7 +164,10 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
         offset += 32;
 
         let index = u32::from_le_bytes([
-            data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
         ]);
         offset += 4;
 
@@ -175,7 +183,10 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
         offset += script_len as usize;
 
         let sequence = u32::from_le_bytes([
-            data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
         ]) as u64;
         offset += 4;
 
@@ -207,8 +218,14 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
             )));
         }
         let value = i64::from_le_bytes([
-            data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
-            data[offset + 4], data[offset + 5], data[offset + 6], data[offset + 7],
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
+            data[offset + 4],
+            data[offset + 5],
+            data[offset + 6],
+            data[offset + 7],
         ]);
         offset += 8;
 
@@ -223,7 +240,10 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
         let script_pubkey = data[offset..offset + script_len as usize].to_vec();
         offset += script_len as usize;
 
-        outputs.push(TransactionOutput { value, script_pubkey });
+        outputs.push(TransactionOutput {
+            value,
+            script_pubkey,
+        });
     }
 
     if is_segwit {
@@ -249,7 +269,10 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
         )));
     }
     let lock_time = u32::from_le_bytes([
-        data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+        data[offset],
+        data[offset + 1],
+        data[offset + 2],
+        data[offset + 3],
     ]) as u64;
 
     Ok(Transaction {
@@ -278,13 +301,14 @@ pub fn deserialize_transaction_with_witness(
         )));
     }
     let version = i32::from_le_bytes([
-        data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+        data[offset],
+        data[offset + 1],
+        data[offset + 2],
+        data[offset + 3],
     ]) as u64;
     offset += 4;
 
-    let is_segwit = data.len() >= offset + 2
-        && data[offset] == 0x00
-        && data[offset + 1] == 0x01;
+    let is_segwit = data.len() >= offset + 2 && data[offset] == 0x00 && data[offset + 1] == 0x01;
 
     if is_segwit {
         offset += 2;
@@ -315,7 +339,10 @@ pub fn deserialize_transaction_with_witness(
         offset += 32;
 
         let index = u32::from_le_bytes([
-            data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
         ]);
         offset += 4;
 
@@ -331,7 +358,10 @@ pub fn deserialize_transaction_with_witness(
         offset += script_len as usize;
 
         let sequence = u32::from_le_bytes([
-            data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
         ]) as u64;
         offset += 4;
 
@@ -363,8 +393,14 @@ pub fn deserialize_transaction_with_witness(
             )));
         }
         let value = i64::from_le_bytes([
-            data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
-            data[offset + 4], data[offset + 5], data[offset + 6], data[offset + 7],
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
+            data[offset + 4],
+            data[offset + 5],
+            data[offset + 6],
+            data[offset + 7],
         ]);
         offset += 8;
 
@@ -379,7 +415,10 @@ pub fn deserialize_transaction_with_witness(
         let script_pubkey = data[offset..offset + script_len as usize].to_vec();
         offset += script_len as usize;
 
-        outputs.push(TransactionOutput { value, script_pubkey });
+        outputs.push(TransactionOutput {
+            value,
+            script_pubkey,
+        });
     }
 
     let mut all_witnesses: Vec<Witness> = Vec::new();
@@ -415,7 +454,10 @@ pub fn deserialize_transaction_with_witness(
         )));
     }
     let lock_time = u32::from_le_bytes([
-        data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+        data[offset],
+        data[offset + 1],
+        data[offset + 2],
+        data[offset + 3],
     ]) as u64;
     offset += 4;
 
@@ -438,7 +480,10 @@ mod tests {
         let tx = Transaction {
             version: 1,
             inputs: crate::tx_inputs![TransactionInput {
-                prevout: OutPoint { hash: [1; 32], index: 0 },
+                prevout: OutPoint {
+                    hash: [1; 32],
+                    index: 0
+                },
                 script_sig: vec![0x51],
                 sequence: 0xffffffff,
             }],

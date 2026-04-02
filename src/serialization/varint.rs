@@ -136,7 +136,16 @@ mod tests {
 
     #[test]
     fn test_encode_decode_round_trip() {
-        let values = [0u64, 252, 253, 65535, 65536, 0xffffffff, 0x100000000, u64::MAX];
+        let values = [
+            0u64,
+            252,
+            253,
+            65535,
+            65536,
+            0xffffffff,
+            0x100000000,
+            u64::MAX,
+        ];
         for value in values {
             let encoded = encode_varint(value);
             let (decoded, len) = decode_varint(&encoded).unwrap();

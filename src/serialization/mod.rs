@@ -14,7 +14,8 @@ pub use block::{
     serialize_block_header, serialize_block_with_witnesses, validate_block_serialized_size,
 };
 pub use transaction::{
-    deserialize_transaction, deserialize_transaction_with_offset, deserialize_transaction_with_witness,
-    serialize_transaction, serialize_transaction_into, serialize_transaction_with_witness,
+    deserialize_transaction, deserialize_transaction_with_offset,
+    deserialize_transaction_with_witness, serialize_transaction, serialize_transaction_into,
+    serialize_transaction_with_witness,
 };
 pub use varint::{decode_varint, encode_varint, VarIntError};

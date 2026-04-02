@@ -1,5 +1,10 @@
 # blvm-primitives
 
+[![crates.io](https://img.shields.io/crates/v/blvm-primitives.svg)](https://crates.io/crates/blvm-primitives)
+[![docs.rs](https://docs.rs/blvm-primitives/badge.svg)](https://docs.rs/blvm-primitives)
+[![CI](https://github.com/BTCDecoded/blvm-primitives/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/BTCDecoded/blvm-primitives/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
 Foundational types, serialization, crypto, and config for Bitcoin consensus and protocol layers.
 
 Part of [Bitcoin Commons](https://btcdecoded.org) BLVM. This crate is the shared foundation that **blvm-consensus** and **blvm-protocol** depend on, enabling parallel compilation and a clear split between consensus rules and protocol abstraction.

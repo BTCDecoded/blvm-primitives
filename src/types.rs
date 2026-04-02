@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "production")]
 use rustc_hash::FxHashMap;
-#[cfg(not(feature = "production"))]
-use std::collections::HashMap;
 #[cfg(feature = "production")]
 use smallvec::SmallVec;
+#[cfg(not(feature = "production"))]
+use std::collections::HashMap;
 
 // Re-export smallvec for macro use in other crates
 #[cfg(feature = "production")]
@@ -409,7 +409,7 @@ pub struct OutPoint {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TransactionInput {
     pub prevout: OutPoint,      // Hot: 40 bytes (frequently accessed)
-    pub sequence: Natural,     // Hot: 8 bytes (frequently accessed)
+    pub sequence: Natural,      // Hot: 8 bytes (frequently accessed)
     pub script_sig: ByteString, // Cold: Vec (pointer, less frequently accessed)
 }
 
