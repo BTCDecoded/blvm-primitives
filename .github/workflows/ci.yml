@@ -282,7 +282,6 @@ jobs:
       - name: Publish to crates.io
         if: steps.gate.outputs.do_release == 'true'
         id: publish
-        continue-on-error: true
         run: |
           set +e
           VERSION="${{ steps.version.outputs.version }}"
@@ -308,7 +307,8 @@ jobs:
             exit 0
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::error::cargo publish failed (see log above)"
+            exit 1
           fi
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
