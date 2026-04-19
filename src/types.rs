@@ -62,8 +62,14 @@ pub type ByteString = Vec<u8>;
 /// For Taproot: Vector containing control block and script path data.
 pub type Witness = Vec<ByteString>;
 
-/// Maximum script length stored inline (no `Arc` allocation). Bincode on-disk layout unchanged.
-const SHARED_BYTE_INLINE_CAP: usize = 64;
+/// Maximum script_pubkey stored inline (no `Arc` heap allocation). On-disk format is unaffected
+/// (custom Serde serializes only the live bytes). 25 bytes covers P2PKH (25 bytes exactly),
+/// P2SH (23), and P2WPKH (22) — ~97% of all UTXOs on mainnet at heights ≤ 600k.
+/// P2WSH (34) and P2TR (34) fall through to the `Arc<[u8]>` path transparently; they are
+/// negligible pre-SegWit and still a small minority post-SegWit at these heights.
+/// Saves ~40 bytes per UTXO vs the old 64-byte cap (~2.2 GB at 55M entries).
+/// Reducing below 25 would push P2PKH to Arc, adding back ~1.6 GB for 70% of UTXOs.
+const SHARED_BYTE_INLINE_CAP: usize = 25;
 
 #[derive(Clone)]
 enum SharedRepr {
@@ -490,6 +496,21 @@ pub type UtxoSet = FxHashMap<OutPoint, std::sync::Arc<UTXO>>;
 
 #[cfg(not(feature = "production"))]
 pub type UtxoSet = HashMap<OutPoint, std::sync::Arc<UTXO>>;
+
+/// Pre-allocate a UtxoSet for `n` entries. Avoids costly reallocation spikes when loading large
+/// checkpoints (at 50M entries the HashMap table alone is ~2.5 GB; a growth-triggered realloc
+/// temporarily doubles that).
+#[inline]
+pub fn utxo_set_with_capacity(n: usize) -> UtxoSet {
+    #[cfg(feature = "production")]
+    {
+        FxHashMap::with_capacity_and_hasher(n, Default::default())
+    }
+    #[cfg(not(feature = "production"))]
+    {
+        HashMap::with_capacity(n)
+    }
+}
 
 /// Insert owned UTXO into UtxoSet (wraps in Arc). Convenience for tests and one-off inserts.
 #[inline]
