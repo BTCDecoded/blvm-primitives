@@ -39,6 +39,20 @@ impl std::fmt::Display for TransactionParseError {
 
 impl std::error::Error for TransactionParseError {}
 
+#[inline]
+fn checked_slice_end(offset: usize, len: u64) -> Result<usize> {
+    let len = usize::try_from(len).map_err(|_| {
+        ConsensusError::Serialization(Cow::Owned(
+            TransactionParseError::InvalidScriptLength.to_string(),
+        ))
+    })?;
+    offset.checked_add(len).ok_or_else(|| {
+        ConsensusError::Serialization(Cow::Owned(
+            TransactionParseError::InsufficientBytes.to_string(),
+        ))
+    })
+}
+
 /// Serialize a transaction to Bitcoin wire format
 #[inline(always)]
 pub fn serialize_transaction(tx: &Transaction) -> Vec<u8> {
@@ -174,13 +188,14 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
         let (script_len, varint_len) = decode_varint(&data[offset..])?;
         offset += varint_len;
 
-        if data.len() < offset + script_len as usize {
+        let script_sig_end = checked_slice_end(offset, script_len)?;
+        if data.len() < script_sig_end {
             return Err(ConsensusError::Serialization(Cow::Owned(
                 TransactionParseError::InsufficientBytes.to_string(),
             )));
         }
-        let script_sig = data[offset..offset + script_len as usize].to_vec();
-        offset += script_len as usize;
+        let script_sig = data[offset..script_sig_end].to_vec();
+        offset = script_sig_end;
 
         let sequence = u32::from_le_bytes([
             data[offset],
@@ -232,13 +247,14 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
         let (script_len, varint_len) = decode_varint(&data[offset..])?;
         offset += varint_len;
 
-        if data.len() < offset + script_len as usize {
+        let script_pubkey_end = checked_slice_end(offset, script_len)?;
+        if data.len() < script_pubkey_end {
             return Err(ConsensusError::Serialization(Cow::Owned(
                 TransactionParseError::InsufficientBytes.to_string(),
             )));
         }
-        let script_pubkey = data[offset..offset + script_len as usize].to_vec();
-        offset += script_len as usize;
+        let script_pubkey = data[offset..script_pubkey_end].to_vec();
+        offset = script_pubkey_end;
 
         outputs.push(TransactionOutput {
             value,
@@ -253,12 +269,13 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
             for _ in 0..stack_count {
                 let (item_len, varint_len) = decode_varint(&data[offset..])?;
                 offset += varint_len;
-                if data.len() < offset + item_len as usize {
+                let item_end = checked_slice_end(offset, item_len)?;
+                if data.len() < item_end {
                     return Err(ConsensusError::Serialization(Cow::Owned(
                         TransactionParseError::InsufficientBytes.to_string(),
                     )));
                 }
-                offset += item_len as usize;
+                offset = item_end;
             }
         }
     }
@@ -349,13 +366,14 @@ pub fn deserialize_transaction_with_witness(
         let (script_len, varint_len) = decode_varint(&data[offset..])?;
         offset += varint_len;
 
-        if data.len() < offset + script_len as usize {
+        let script_sig_end = checked_slice_end(offset, script_len)?;
+        if data.len() < script_sig_end {
             return Err(ConsensusError::Serialization(Cow::Owned(
                 TransactionParseError::InsufficientBytes.to_string(),
             )));
         }
-        let script_sig = data[offset..offset + script_len as usize].to_vec();
-        offset += script_len as usize;
+        let script_sig = data[offset..script_sig_end].to_vec();
+        offset = script_sig_end;
 
         let sequence = u32::from_le_bytes([
             data[offset],
@@ -407,13 +425,14 @@ pub fn deserialize_transaction_with_witness(
         let (script_len, varint_len) = decode_varint(&data[offset..])?;
         offset += varint_len;
 
-        if data.len() < offset + script_len as usize {
+        let script_pubkey_end = checked_slice_end(offset, script_len)?;
+        if data.len() < script_pubkey_end {
             return Err(ConsensusError::Serialization(Cow::Owned(
                 TransactionParseError::InsufficientBytes.to_string(),
             )));
         }
-        let script_pubkey = data[offset..offset + script_len as usize].to_vec();
-        offset += script_len as usize;
+        let script_pubkey = data[offset..script_pubkey_end].to_vec();
+        offset = script_pubkey_end;
 
         outputs.push(TransactionOutput {
             value,
@@ -432,13 +451,14 @@ pub fn deserialize_transaction_with_witness(
                 let (item_len, varint_len) = decode_varint(&data[offset..])?;
                 offset += varint_len;
 
-                if data.len() < offset + item_len as usize {
+                let item_end = checked_slice_end(offset, item_len)?;
+                if data.len() < item_end {
                     return Err(ConsensusError::Serialization(Cow::Owned(
                         TransactionParseError::InsufficientBytes.to_string(),
                     )));
                 }
-                witness_stack.push(data[offset..offset + item_len as usize].to_vec());
-                offset += item_len as usize;
+                witness_stack.push(data[offset..item_end].to_vec());
+                offset = item_end;
             }
             all_witnesses.push(witness_stack);
         }
