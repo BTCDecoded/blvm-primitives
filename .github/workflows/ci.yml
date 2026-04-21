@@ -82,20 +82,20 @@ jobs:
         !contains(github.event.head_commit.message, '[skip publish]')))
     permissions:
       contents: write
-    defaults:
-      run:
-        working-directory: ${{ github.workspace }}
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      # Isolate target/ on self-hosted runners: shared workspace target dirs can race or go
-      # stale (missing *.d, "Current directory is invalid" in build scripts) when jobs overlap
-      # or the workdir is cleaned mid-build. Use a fresh dir per workflow run + attempt.
-      CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target-blvm-primitives-${{ github.run_id }}-${{ github.run_attempt }}
       CARGO_INCREMENTAL: '0'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      # Isolate target/ on self-hosted runners: shared workspace target dirs can race or go
+      # stale (missing *.d, "Current directory is invalid" in build scripts) when jobs overlap
+      # or the workdir is cleaned mid-build. Use a fresh dir per workflow run + attempt.
+      # RUNNER_TEMP is set by the runner; can't use runner context in job-level env.
+      - name: Set isolated Cargo target dir
+        run: echo "CARGO_TARGET_DIR=${RUNNER_TEMP}/cargo-target-blvm-primitives-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
 
       - name: Clean CARGO_HOME (skip runner global rustflags)
         run: |
@@ -216,8 +216,6 @@ jobs:
       - name: Pre-release smoke test
         if: steps.gate.outputs.do_release == 'true'
         run: |
-          set -euo pipefail
-          cd "$GITHUB_WORKSPACE"
           mkdir -p "${CARGO_TARGET_DIR}"
           cargo check --all-features --quiet
           cargo test --all-features --lib --quiet -- --test-threads=1
