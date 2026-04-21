@@ -197,6 +197,11 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
         let script_sig = data[offset..script_sig_end].to_vec();
         offset = script_sig_end;
 
+        if data.len() < offset + 4 {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::InsufficientBytes.to_string(),
+            )));
+        }
         let sequence = u32::from_le_bytes([
             data[offset],
             data[offset + 1],
@@ -375,6 +380,11 @@ pub fn deserialize_transaction_with_witness(
         let script_sig = data[offset..script_sig_end].to_vec();
         offset = script_sig_end;
 
+        if data.len() < offset + 4 {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::InsufficientBytes.to_string(),
+            )));
+        }
         let sequence = u32::from_le_bytes([
             data[offset],
             data[offset + 1],
