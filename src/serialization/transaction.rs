@@ -124,10 +124,23 @@ pub fn serialize_transaction(tx: &Transaction) -> Vec<u8> {
 }
 
 /// Append serialized transaction to buffer (shared logic for into/inner).
+///
+/// When `vin` is empty and `vout` is non-empty, legacy `compact_size(0) || compact_size(n)` would
+/// serialize as `0x00 0x01…`, which our witness-aware deserializer (matching Bitcoin Core with
+/// witnesses allowed) reads as empty `vin` + **flag** `0x01`, not as `vout` count. Emit extended
+/// framing: dummy empty `vin`, flag `0x01`, real input count, then `vout` (see `SerializeTransaction`
+/// in Bitcoin Core).
 #[inline(always)]
 fn serialize_transaction_append(result: &mut Vec<u8>, tx: &Transaction) {
     result.extend_from_slice(&(tx.version as i32).to_le_bytes());
-    result.extend_from_slice(&encode_varint(tx.inputs.len() as u64));
+
+    if tx.inputs.is_empty() && !tx.outputs.is_empty() {
+        result.extend_from_slice(&encode_varint(0));
+        result.push(0x01);
+        result.extend_from_slice(&encode_varint(tx.inputs.len() as u64));
+    } else {
+        result.extend_from_slice(&encode_varint(tx.inputs.len() as u64));
+    }
 
     for input in &tx.inputs {
         result.extend_from_slice(&input.prevout.hash);
@@ -598,5 +611,27 @@ mod tests {
         assert_eq!(back.lock_time, tx.lock_time);
         // version(4) + vin=0 + flags=0 + locktime(4) — two 0x00 bytes after version
         assert_eq!(&bytes[4..6], &[0u8, 0u8]);
+    }
+
+    #[test]
+    fn zero_inputs_one_output_round_trips_extended_framing() {
+        let tx = Transaction {
+            version: 2,
+            inputs: crate::tx_inputs![],
+            outputs: crate::tx_outputs![TransactionOutput {
+                value: 1000,
+                script_pubkey: vec![0x51],
+            }],
+            lock_time: 0x11223344,
+        };
+        let bytes = serialize_transaction(&tx);
+        let back = deserialize_transaction(&bytes).unwrap();
+        assert_eq!(back.version, tx.version);
+        assert!(back.inputs.is_empty());
+        assert_eq!(back.outputs.len(), 1);
+        assert_eq!(back.outputs[0].value, 1000);
+        assert_eq!(back.lock_time, tx.lock_time);
+        // version(4) + 0x00 dummy vin + 0x01 flag + 0x00 real ic + vout count + ...
+        assert_eq!(&bytes[4..8], &[0u8, 1, 0, 1]);
     }
 }
