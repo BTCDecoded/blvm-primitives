@@ -53,6 +53,68 @@ fn checked_slice_end(offset: usize, len: u64) -> Result<usize> {
     })
 }
 
+/// After the 4-byte `version`, read the compact input count and optional segwit wrapper.
+///
+/// Matches [`UnserializeTransaction`] in Bitcoin Core: the first varint is always the input count.
+/// If it is zero, the next byte is an optional-features flag. `1` means BIP141 extended encoding
+/// (marker was absorbed into the empty `vin` vector); the real input-count varint follows. Flag `0`
+/// means no extension: `vin` and `vout` both stay empty and **no** output-count varint appears on
+/// the wire before `lock_time`.
+///
+/// **Do not** detect segwit by peeking `0x00 0x01` before decoding that first varint: the compact
+/// encoding of the input count is not always a single `0x00` byte, so peeking mis-aligns the stream.
+fn read_tx_input_count_after_version(
+    data: &[u8],
+    mut offset: usize,
+) -> Result<(bool, u64, usize, bool)> {
+    let (mut input_count, varint_len) = decode_varint(&data[offset..])?;
+    offset += varint_len;
+
+    if input_count > 1_000_000 {
+        return Err(ConsensusError::Serialization(Cow::Owned(
+            TransactionParseError::InvalidInputCount.to_string(),
+        )));
+    }
+
+    let mut is_segwit = false;
+    // When true, Bitcoin Core left vout empty without reading a vector length (flag byte was 0).
+    let mut implicit_empty_outputs = false;
+
+    if input_count == 0 {
+        if offset >= data.len() {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::InsufficientBytes.to_string(),
+            )));
+        }
+        let flag = data[offset];
+        offset += 1;
+
+        if flag == 0 {
+            implicit_empty_outputs = true;
+            return Ok((false, 0, offset, implicit_empty_outputs));
+        }
+
+        if flag != 1 {
+            return Err(ConsensusError::Serialization(Cow::Owned(format!(
+                "Unsupported segwit transaction flag: {flag}"
+            ))));
+        }
+
+        is_segwit = true;
+
+        let (ic2, vl2) = decode_varint(&data[offset..])?;
+        offset += vl2;
+        if ic2 > 1_000_000 {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::InvalidInputCount.to_string(),
+            )));
+        }
+        input_count = ic2;
+    }
+
+    Ok((is_segwit, input_count, offset, implicit_empty_outputs))
+}
+
 /// Serialize a transaction to Bitcoin wire format
 #[inline(always)]
 pub fn serialize_transaction(tx: &Transaction) -> Vec<u8> {
@@ -147,20 +209,8 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
     ]) as u64;
     offset += 4;
 
-    let is_segwit = data.len() >= offset + 2 && data[offset] == 0x00 && data[offset + 1] == 0x01;
-
-    if is_segwit {
-        offset += 2;
-    }
-
-    let (input_count, varint_len) = decode_varint(&data[offset..])?;
-    offset += varint_len;
-
-    if input_count > 1000000 {
-        return Err(ConsensusError::Serialization(Cow::Owned(
-            TransactionParseError::InvalidInputCount.to_string(),
-        )));
-    }
+    let (is_segwit, input_count, mut offset, implicit_empty_outputs) =
+        read_tx_input_count_after_version(data, offset)?;
 
     #[cfg(feature = "production")]
     let mut inputs = SmallVec::<[TransactionInput; 2]>::new();
@@ -217,14 +267,19 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
         });
     }
 
-    let (output_count, varint_len) = decode_varint(&data[offset..])?;
-    offset += varint_len;
+    let output_count = if implicit_empty_outputs {
+        0
+    } else {
+        let (output_count, varint_len) = decode_varint(&data[offset..])?;
+        offset += varint_len;
 
-    if output_count > 1000000 {
-        return Err(ConsensusError::Serialization(Cow::Owned(
-            TransactionParseError::InvalidOutputCount.to_string(),
-        )));
-    }
+        if output_count > 1000000 {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::InvalidOutputCount.to_string(),
+            )));
+        }
+        output_count
+    };
 
     #[cfg(feature = "production")]
     let mut outputs = SmallVec::<[TransactionOutput; 2]>::new();
@@ -330,20 +385,8 @@ pub fn deserialize_transaction_with_witness(
     ]) as u64;
     offset += 4;
 
-    let is_segwit = data.len() >= offset + 2 && data[offset] == 0x00 && data[offset + 1] == 0x01;
-
-    if is_segwit {
-        offset += 2;
-    }
-
-    let (input_count, varint_len) = decode_varint(&data[offset..])?;
-    offset += varint_len;
-
-    if input_count > 1000000 {
-        return Err(ConsensusError::Serialization(Cow::Owned(
-            TransactionParseError::InvalidInputCount.to_string(),
-        )));
-    }
+    let (is_segwit, input_count, mut offset, implicit_empty_outputs) =
+        read_tx_input_count_after_version(data, offset)?;
 
     #[cfg(feature = "production")]
     let mut inputs = SmallVec::<[TransactionInput; 2]>::new();
@@ -400,14 +443,19 @@ pub fn deserialize_transaction_with_witness(
         });
     }
 
-    let (output_count, varint_len) = decode_varint(&data[offset..])?;
-    offset += varint_len;
+    let output_count = if implicit_empty_outputs {
+        0
+    } else {
+        let (output_count, varint_len) = decode_varint(&data[offset..])?;
+        offset += varint_len;
 
-    if output_count > 1000000 {
-        return Err(ConsensusError::Serialization(Cow::Owned(
-            TransactionParseError::InvalidOutputCount.to_string(),
-        )));
-    }
+        if output_count > 1000000 {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::InvalidOutputCount.to_string(),
+            )));
+        }
+        output_count
+    };
 
     #[cfg(feature = "production")]
     let mut outputs = SmallVec::<[TransactionOutput; 2]>::new();
@@ -531,5 +579,24 @@ mod tests {
         assert_eq!(deserialized.inputs.len(), tx.inputs.len());
         assert_eq!(deserialized.outputs.len(), tx.outputs.len());
         assert_eq!(deserialized.lock_time, tx.lock_time);
+    }
+
+    /// Bitcoin Core: empty `vin` + flag `0` implies empty `vout` without a separate output-count read.
+    #[test]
+    fn empty_tx_round_trip_matches_double_zero_preamble() {
+        let tx = Transaction {
+            version: 1,
+            inputs: crate::tx_inputs![],
+            outputs: crate::tx_outputs![],
+            lock_time: 0,
+        };
+        let bytes = serialize_transaction(&tx);
+        let back = deserialize_transaction(&bytes).unwrap();
+        assert_eq!(back.version, tx.version);
+        assert!(back.inputs.is_empty());
+        assert!(back.outputs.is_empty());
+        assert_eq!(back.lock_time, tx.lock_time);
+        // version(4) + vin=0 + flags=0 + locktime(4) — two 0x00 bytes after version
+        assert_eq!(&bytes[4..6], &[0u8, 0u8]);
     }
 }
