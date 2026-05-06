@@ -161,31 +161,29 @@ jobs:
           MINOR=$(echo "$CURRENT" | cut -d. -f2)
           PATCH=$(echo "$CURRENT" | cut -d. -f3)
           PATCH=$((PATCH + 1))
-          VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          CRATE_NAME=$(grep -E '^name = ' Cargo.toml | head -1 | sed -E 's/^name = "([^"]+)".*/\1/')
+          CRATE_NAME=$(grep -A 5 '^\[package\]' Cargo.toml | grep '^name = ' | head -1 | sed -E 's/^name = "([^"]+)".*/\1/')
+          echo "Fetching published versions for ${CRATE_NAME} from crates.io..."
+          API_RESPONSE=$(curl -sf \
+            -H "User-Agent: blvm-ci/1.0 (github.com/BTCDecoded)" \
+            "https://crates.io/api/v1/crates/${CRATE_NAME}/versions" 2>/dev/null || echo "")
+          PUBLISHED_VERSIONS=""
+          if [ -n "$API_RESPONSE" ] && ! echo "$API_RESPONSE" | grep -q '"detail"'; then
+            if command -v jq &>/dev/null; then
+              PUBLISHED_VERSIONS=$(echo "$API_RESPONSE" | jq -r '.versions[].num' 2>/dev/null || echo "")
+            else
+              PUBLISHED_VERSIONS=$(echo "$API_RESPONSE" | grep -oE '"num":"[^"]+"' | sed 's/"num":"//;s/"//')
+            fi
+            echo "Found $(echo "$PUBLISHED_VERSIONS" | wc -l | tr -d ' ') published versions."
+          else
+            echo "⚠️  crates.io API unavailable — assuming version is free."
+          fi
           MAX_ATTEMPTS=10
           ATTEMPT=0
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            echo "Checking if ${CRATE_NAME} v${VERSION} exists on crates.io..."
-            API_RESPONSE=$(curl -s --max-time 10 "https://crates.io/api/v1/crates/${CRATE_NAME}/versions" 2>/dev/null || echo "")
-            VERSION_EXISTS="false"
-            if [ -n "$API_RESPONSE" ] && ! echo "$API_RESPONSE" | grep -q '"detail"'; then
-              if command -v jq &>/dev/null; then
-                EXISTS_CHECK=$(echo "$API_RESPONSE" | jq -r ".versions[] | select(.num == \"${VERSION}\") | .num" | head -1)
-                [ "$EXISTS_CHECK" = "$VERSION" ] && VERSION_EXISTS="true"
-              elif echo "$API_RESPONSE" | grep -q "\"num\":\"${VERSION}\""; then
-                VERSION_EXISTS="true"
-              fi
-            elif cargo search "$CRATE_NAME" --limit 100 2>/dev/null | grep -qE "\"${CRATE_NAME}\".*\"${VERSION}\""; then
-              VERSION_EXISTS="true"
-            fi
-            if [ "$VERSION_EXISTS" = "true" ]; then
+            VERSION="${MAJOR}.${MINOR}.${PATCH}"
+            if echo "$PUBLISHED_VERSIONS" | grep -qxF "$VERSION"; then
               echo "Version ${VERSION} already on crates.io, bumping patch..."
-              MAJOR=$(echo "$VERSION" | cut -d. -f1)
-              MINOR=$(echo "$VERSION" | cut -d. -f2)
-              PATCH=$(echo "$VERSION" | cut -d. -f3)
               PATCH=$((PATCH + 1))
-              VERSION="${MAJOR}.${MINOR}.${PATCH}"
               ATTEMPT=$((ATTEMPT + 1))
             else
               echo "Version ${VERSION} is available"
