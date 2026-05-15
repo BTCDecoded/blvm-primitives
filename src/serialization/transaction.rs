@@ -205,73 +205,76 @@ pub fn serialize_transaction_with_witness(tx: &Transaction, witnesses: &[Witness
     result
 }
 
-/// Deserialize a transaction from Bitcoin wire format
+/// Deserialize a transaction from Bitcoin wire format.
+///
+/// Witness data (if present) is validated but not returned; use
+/// [`deserialize_transaction_with_witness`] when witness stacks are needed.
 pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
-    let mut offset = 0;
+    deserialize_transaction_with_witness(data).map(|(tx, _, _)| tx)
+}
 
-    if data.len() < offset + 4 {
-        return Err(ConsensusError::Serialization(Cow::Owned(
-            TransactionParseError::InsufficientBytes.to_string(),
-        )));
-    }
-    let version = i32::from_le_bytes([
-        data[offset],
-        data[offset + 1],
-        data[offset + 2],
-        data[offset + 3],
-    ]) as u64;
-    offset += 4;
+// ── Private parsing helpers ───────────────────────────────────────────────────
 
-    let (is_segwit, input_count, mut offset, implicit_empty_outputs) =
-        read_tx_input_count_after_version(data, offset)?;
+/// The concrete vector type used for transaction inputs/outputs at runtime.
+/// SmallVec in production builds to avoid heap allocation for ≤2 elements;
+/// plain Vec in non-production builds for simplicity.
+#[cfg(feature = "production")]
+type TxInputVec = SmallVec<[TransactionInput; 2]>;
+#[cfg(not(feature = "production"))]
+type TxInputVec = Vec<TransactionInput>;
 
-    #[cfg(feature = "production")]
-    let mut inputs = SmallVec::<[TransactionInput; 2]>::new();
-    #[cfg(not(feature = "production"))]
-    let mut inputs = Vec::new();
+#[cfg(feature = "production")]
+type TxOutputVec = SmallVec<[TransactionOutput; 2]>;
+#[cfg(not(feature = "production"))]
+type TxOutputVec = Vec<TransactionOutput>;
 
-    for _ in 0..input_count {
-        if data.len() < offset + 36 {
+/// Parse `count` transaction inputs starting at `*offset`, advancing it in place.
+#[inline]
+fn parse_inputs(data: &[u8], offset: &mut usize, count: u64) -> Result<TxInputVec> {
+    let mut inputs = TxInputVec::new();
+
+    for _ in 0..count {
+        if data.len() < *offset + 36 {
             return Err(ConsensusError::Serialization(Cow::Owned(
                 TransactionParseError::InsufficientBytes.to_string(),
             )));
         }
         let mut hash = [0u8; 32];
-        hash.copy_from_slice(&data[offset..offset + 32]);
-        offset += 32;
+        hash.copy_from_slice(&data[*offset..*offset + 32]);
+        *offset += 32;
 
         let index = u32::from_le_bytes([
-            data[offset],
-            data[offset + 1],
-            data[offset + 2],
-            data[offset + 3],
+            data[*offset],
+            data[*offset + 1],
+            data[*offset + 2],
+            data[*offset + 3],
         ]);
-        offset += 4;
+        *offset += 4;
 
-        let (script_len, varint_len) = decode_varint(&data[offset..])?;
-        offset += varint_len;
+        let (script_len, varint_len) = decode_varint(&data[*offset..])?;
+        *offset += varint_len;
 
-        let script_sig_end = checked_slice_end(offset, script_len)?;
+        let script_sig_end = checked_slice_end(*offset, script_len)?;
         if data.len() < script_sig_end {
             return Err(ConsensusError::Serialization(Cow::Owned(
                 TransactionParseError::InsufficientBytes.to_string(),
             )));
         }
-        let script_sig = data[offset..script_sig_end].to_vec();
-        offset = script_sig_end;
+        let script_sig = data[*offset..script_sig_end].to_vec();
+        *offset = script_sig_end;
 
-        if data.len() < offset + 4 {
+        if data.len() < *offset + 4 {
             return Err(ConsensusError::Serialization(Cow::Owned(
                 TransactionParseError::InsufficientBytes.to_string(),
             )));
         }
         let sequence = u32::from_le_bytes([
-            data[offset],
-            data[offset + 1],
-            data[offset + 2],
-            data[offset + 3],
+            data[*offset],
+            data[*offset + 1],
+            data[*offset + 2],
+            data[*offset + 3],
         ]) as u64;
-        offset += 4;
+        *offset += 4;
 
         inputs.push(TransactionInput {
             prevout: OutPoint { hash, index },
@@ -280,13 +283,24 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
         });
     }
 
+    Ok(inputs)
+}
+
+/// Read the output-count varint (or return 0 on implicit-empty-outputs), then parse
+/// all transaction outputs, advancing `*offset` in place.
+#[inline]
+fn parse_outputs(
+    data: &[u8],
+    offset: &mut usize,
+    implicit_empty_outputs: bool,
+) -> Result<TxOutputVec> {
     let output_count = if implicit_empty_outputs {
         0
     } else {
-        let (output_count, varint_len) = decode_varint(&data[offset..])?;
-        offset += varint_len;
+        let (output_count, varint_len) = decode_varint(&data[*offset..])?;
+        *offset += varint_len;
 
-        if output_count > 1000000 {
+        if output_count > 1_000_000 {
             return Err(ConsensusError::Serialization(Cow::Owned(
                 TransactionParseError::InvalidOutputCount.to_string(),
             )));
@@ -294,84 +308,45 @@ pub fn deserialize_transaction(data: &[u8]) -> Result<Transaction> {
         output_count
     };
 
-    #[cfg(feature = "production")]
-    let mut outputs = SmallVec::<[TransactionOutput; 2]>::new();
-    #[cfg(not(feature = "production"))]
-    let mut outputs = Vec::new();
+    let mut outputs = TxOutputVec::new();
 
     for _ in 0..output_count {
-        if data.len() < offset + 8 {
+        if data.len() < *offset + 8 {
             return Err(ConsensusError::Serialization(Cow::Owned(
                 TransactionParseError::InsufficientBytes.to_string(),
             )));
         }
         let value = i64::from_le_bytes([
-            data[offset],
-            data[offset + 1],
-            data[offset + 2],
-            data[offset + 3],
-            data[offset + 4],
-            data[offset + 5],
-            data[offset + 6],
-            data[offset + 7],
+            data[*offset],
+            data[*offset + 1],
+            data[*offset + 2],
+            data[*offset + 3],
+            data[*offset + 4],
+            data[*offset + 5],
+            data[*offset + 6],
+            data[*offset + 7],
         ]);
-        offset += 8;
+        *offset += 8;
 
-        let (script_len, varint_len) = decode_varint(&data[offset..])?;
-        offset += varint_len;
+        let (script_len, varint_len) = decode_varint(&data[*offset..])?;
+        *offset += varint_len;
 
-        let script_pubkey_end = checked_slice_end(offset, script_len)?;
+        let script_pubkey_end = checked_slice_end(*offset, script_len)?;
         if data.len() < script_pubkey_end {
             return Err(ConsensusError::Serialization(Cow::Owned(
                 TransactionParseError::InsufficientBytes.to_string(),
             )));
         }
-        let script_pubkey = data[offset..script_pubkey_end].to_vec();
-        offset = script_pubkey_end;
+        let script_pubkey = data[*offset..script_pubkey_end].to_vec();
+        *offset = script_pubkey_end;
 
-        outputs.push(TransactionOutput {
-            value,
-            script_pubkey,
-        });
+        outputs.push(TransactionOutput { value, script_pubkey });
     }
 
-    if is_segwit {
-        for _ in 0..input_count {
-            let (stack_count, varint_len) = decode_varint(&data[offset..])?;
-            offset += varint_len;
-            for _ in 0..stack_count {
-                let (item_len, varint_len) = decode_varint(&data[offset..])?;
-                offset += varint_len;
-                let item_end = checked_slice_end(offset, item_len)?;
-                if data.len() < item_end {
-                    return Err(ConsensusError::Serialization(Cow::Owned(
-                        TransactionParseError::InsufficientBytes.to_string(),
-                    )));
-                }
-                offset = item_end;
-            }
-        }
-    }
-
-    if data.len() < offset + 4 {
-        return Err(ConsensusError::Serialization(Cow::Owned(
-            TransactionParseError::InsufficientBytes.to_string(),
-        )));
-    }
-    let lock_time = u32::from_le_bytes([
-        data[offset],
-        data[offset + 1],
-        data[offset + 2],
-        data[offset + 3],
-    ]) as u64;
-
-    Ok(Transaction {
-        version,
-        inputs,
-        outputs,
-        lock_time,
-    })
+    Ok(outputs)
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 /// Deserialize a transaction, returning (tx, bytes_consumed). Convenience wrapper that discards witness data.
 pub fn deserialize_transaction_with_offset(data: &[u8]) -> Result<(Transaction, usize)> {
@@ -401,115 +376,8 @@ pub fn deserialize_transaction_with_witness(
     let (is_segwit, input_count, mut offset, implicit_empty_outputs) =
         read_tx_input_count_after_version(data, offset)?;
 
-    #[cfg(feature = "production")]
-    let mut inputs = SmallVec::<[TransactionInput; 2]>::new();
-    #[cfg(not(feature = "production"))]
-    let mut inputs = Vec::new();
-
-    for _ in 0..input_count {
-        if data.len() < offset + 36 {
-            return Err(ConsensusError::Serialization(Cow::Owned(
-                TransactionParseError::InsufficientBytes.to_string(),
-            )));
-        }
-        let mut hash = [0u8; 32];
-        hash.copy_from_slice(&data[offset..offset + 32]);
-        offset += 32;
-
-        let index = u32::from_le_bytes([
-            data[offset],
-            data[offset + 1],
-            data[offset + 2],
-            data[offset + 3],
-        ]);
-        offset += 4;
-
-        let (script_len, varint_len) = decode_varint(&data[offset..])?;
-        offset += varint_len;
-
-        let script_sig_end = checked_slice_end(offset, script_len)?;
-        if data.len() < script_sig_end {
-            return Err(ConsensusError::Serialization(Cow::Owned(
-                TransactionParseError::InsufficientBytes.to_string(),
-            )));
-        }
-        let script_sig = data[offset..script_sig_end].to_vec();
-        offset = script_sig_end;
-
-        if data.len() < offset + 4 {
-            return Err(ConsensusError::Serialization(Cow::Owned(
-                TransactionParseError::InsufficientBytes.to_string(),
-            )));
-        }
-        let sequence = u32::from_le_bytes([
-            data[offset],
-            data[offset + 1],
-            data[offset + 2],
-            data[offset + 3],
-        ]) as u64;
-        offset += 4;
-
-        inputs.push(TransactionInput {
-            prevout: OutPoint { hash, index },
-            script_sig,
-            sequence,
-        });
-    }
-
-    let output_count = if implicit_empty_outputs {
-        0
-    } else {
-        let (output_count, varint_len) = decode_varint(&data[offset..])?;
-        offset += varint_len;
-
-        if output_count > 1000000 {
-            return Err(ConsensusError::Serialization(Cow::Owned(
-                TransactionParseError::InvalidOutputCount.to_string(),
-            )));
-        }
-        output_count
-    };
-
-    #[cfg(feature = "production")]
-    let mut outputs = SmallVec::<[TransactionOutput; 2]>::new();
-    #[cfg(not(feature = "production"))]
-    let mut outputs = Vec::new();
-
-    for _ in 0..output_count {
-        if data.len() < offset + 8 {
-            return Err(ConsensusError::Serialization(Cow::Owned(
-                TransactionParseError::InsufficientBytes.to_string(),
-            )));
-        }
-        let value = i64::from_le_bytes([
-            data[offset],
-            data[offset + 1],
-            data[offset + 2],
-            data[offset + 3],
-            data[offset + 4],
-            data[offset + 5],
-            data[offset + 6],
-            data[offset + 7],
-        ]);
-        offset += 8;
-
-        let (script_len, varint_len) = decode_varint(&data[offset..])?;
-        offset += varint_len;
-
-        let script_pubkey_end = checked_slice_end(offset, script_len)?;
-        if data.len() < script_pubkey_end {
-            return Err(ConsensusError::Serialization(Cow::Owned(
-                TransactionParseError::InsufficientBytes.to_string(),
-            )));
-        }
-        let script_pubkey = data[offset..script_pubkey_end].to_vec();
-        offset = script_pubkey_end;
-
-        outputs.push(TransactionOutput {
-            value,
-            script_pubkey,
-        });
-    }
+    let inputs = parse_inputs(data, &mut offset, input_count)?;
+    let outputs = parse_outputs(data, &mut offset, implicit_empty_outputs)?;
 
     let mut all_witnesses: Vec<Witness> = Vec::new();
     if is_segwit {
