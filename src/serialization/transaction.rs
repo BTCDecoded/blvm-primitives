@@ -340,7 +340,10 @@ fn parse_outputs(
         let script_pubkey = data[*offset..script_pubkey_end].to_vec();
         *offset = script_pubkey_end;
 
-        outputs.push(TransactionOutput { value, script_pubkey });
+        outputs.push(TransactionOutput {
+            value,
+            script_pubkey,
+        });
     }
 
     Ok(outputs)
