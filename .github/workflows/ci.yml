@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   workflow_dispatch:
 
 permissions:
@@ -19,6 +19,7 @@ jobs:
   test:
     name: Test
     runs-on: [self-hosted, Linux, X64, builds]
+
     if: |
       github.event_name != 'push' ||
       github.event.head_commit == null ||
@@ -26,7 +27,7 @@ jobs:
        !contains(github.event.head_commit.message, '[ci skip]') &&
        !contains(github.event.head_commit.message, '[no ci]'))
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Runner ~/.cargo/config often sets clang + -fuse-ld=mold; merging project
       # rustflags produced mold+bfd and broke rustc. Use empty CARGO_HOME + symlinks.
@@ -72,6 +73,7 @@ jobs:
     name: Release & publish
     needs: test
     runs-on: [self-hosted, Linux, X64, builds]
+
     if: |
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
@@ -86,7 +88,7 @@ jobs:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
       CARGO_INCREMENTAL: '0'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
