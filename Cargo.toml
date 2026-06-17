@@ -1,6 +1,6 @@
 [package]
 name = "blvm-primitives"
-version = "0.1.16"
+version = "0.1.17"
 edition = "2024"
 authors = ["Bitcoin Commons Team"]
 description = "Bitcoin Commons BLVM: Foundational types, serialization, crypto, and config for consensus and protocol layers"
