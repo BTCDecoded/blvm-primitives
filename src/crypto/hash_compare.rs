@@ -47,19 +47,20 @@ fn hash_eq_fallback(hash1: &Hash, hash2: &Hash) -> bool {
 unsafe fn hash_eq_avx2(hash1: &Hash, hash2: &Hash) -> bool {
     use std::arch::x86_64::*;
 
-    // Load both hashes as 256-bit AVX2 vectors
-    let h1 = _mm256_loadu_si256(hash1.as_ptr() as *const __m256i);
-    let h2 = _mm256_loadu_si256(hash2.as_ptr() as *const __m256i);
+    unsafe {
+        // Load both hashes as 256-bit AVX2 vectors
+        let h1 = _mm256_loadu_si256(hash1.as_ptr() as *const __m256i);
+        let h2 = _mm256_loadu_si256(hash2.as_ptr() as *const __m256i);
 
-    // Compare all 32 bytes in parallel (byte-wise equality)
-    let cmp = _mm256_cmpeq_epi8(h1, h2);
+        // Compare all 32 bytes in parallel (byte-wise equality)
+        let cmp = _mm256_cmpeq_epi8(h1, h2);
 
-    // Extract comparison mask (1 bit per byte)
-    let mask = _mm256_movemask_epi8(cmp);
+        // Extract comparison mask (1 bit per byte)
+        let mask = _mm256_movemask_epi8(cmp);
 
-    // All 32 bytes equal if mask == -1 (all 32 bits set)
-    // Note: _mm256_movemask_epi8 returns i32, so 0xFFFFFFFF is -1
-    mask == -1i32
+        // All 32 bytes equal if mask == -1 (all 32 bits set)
+        mask == -1i32
+    }
 }
 
 /// Check if AVX2 is available at runtime

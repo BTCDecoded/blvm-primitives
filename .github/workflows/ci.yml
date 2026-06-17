@@ -42,7 +42,7 @@ jobs:
       - name: Install Rust
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
         with:
-          toolchain: 1.89.0
+          toolchain: 1.88.0
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
@@ -57,7 +57,7 @@ jobs:
         run: |
           if ! cargo clippy --version >/dev/null 2>&1; then
             echo "Skipping Clippy (cargo-clippy not installed for the active toolchain)"
-            exit 0
+            exit 1
           fi
           cargo clippy --all-features -- -D warnings
 
@@ -127,7 +127,7 @@ jobs:
         if: steps.gate.outputs.do_release == 'true'
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
         with:
-          toolchain: 1.89.0
+          toolchain: 1.88.0
 
       - name: Check for breaking changes (advisory)
         if: steps.gate.outputs.do_release == 'true'

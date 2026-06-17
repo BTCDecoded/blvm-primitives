@@ -45,10 +45,12 @@ unsafe fn copy_bytes_avx2(dst: &mut [u8], src: &[u8]) {
 
     // Process 32-byte chunks with AVX2
     for _ in 0..chunks {
-        let data = _mm256_loadu_si256(src_ptr as *const __m256i);
-        _mm256_storeu_si256(dst_ptr as *mut __m256i, data);
-        dst_ptr = dst_ptr.add(32);
-        src_ptr = src_ptr.add(32);
+        unsafe {
+            let data = _mm256_loadu_si256(src_ptr as *const __m256i);
+            _mm256_storeu_si256(dst_ptr as *mut __m256i, data);
+            dst_ptr = dst_ptr.add(32);
+            src_ptr = src_ptr.add(32);
+        }
     }
 
     // Handle remainder sequentially

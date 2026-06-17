@@ -43,119 +43,137 @@ mod helpers {
 
     #[inline(always)]
     pub unsafe fn k(x: u32) -> __m256i {
-        _mm256_set1_epi32(x as i32)
+        unsafe { _mm256_set1_epi32(x as i32) }
     }
 
     #[inline(always)]
     pub unsafe fn add(x: __m256i, y: __m256i) -> __m256i {
-        _mm256_add_epi32(x, y)
+        unsafe { _mm256_add_epi32(x, y) }
     }
 
     #[inline(always)]
     pub unsafe fn add3(x: __m256i, y: __m256i, z: __m256i) -> __m256i {
-        add(add(x, y), z)
+        unsafe { add(add(x, y), z) }
     }
 
     #[inline(always)]
     pub unsafe fn add4(x: __m256i, y: __m256i, z: __m256i, w: __m256i) -> __m256i {
-        // Op: Add(x, y, z, w) = Add(Add(x, y), Add(z, w))
-        add(add(x, y), add(z, w))
+        unsafe {
+            // Op: Add(x, y, z, w) = Add(Add(x, y), Add(z, w))
+            add(add(x, y), add(z, w))
+        }
     }
 
     #[inline(always)]
     pub unsafe fn add5(x: __m256i, y: __m256i, z: __m256i, w: __m256i, v: __m256i) -> __m256i {
-        // Op: Add(x, y, z, w, v) = Add(Add(x, y, z), Add(w, v))
-        add(add3(x, y, z), add(w, v))
+        unsafe {
+            // Op: Add(x, y, z, w, v) = Add(Add(x, y, z), Add(w, v))
+            add(add3(x, y, z), add(w, v))
+        }
     }
 
     #[inline(always)]
     pub unsafe fn xor(x: __m256i, y: __m256i) -> __m256i {
-        _mm256_xor_si256(x, y)
+        unsafe { _mm256_xor_si256(x, y) }
     }
 
     #[inline(always)]
     pub unsafe fn xor3(x: __m256i, y: __m256i, z: __m256i) -> __m256i {
-        xor(xor(x, y), z)
+        unsafe { xor(xor(x, y), z) }
     }
 
     #[inline(always)]
     pub unsafe fn or(x: __m256i, y: __m256i) -> __m256i {
-        _mm256_or_si256(x, y)
+        unsafe { _mm256_or_si256(x, y) }
     }
 
     #[inline(always)]
     pub unsafe fn and(x: __m256i, y: __m256i) -> __m256i {
-        _mm256_and_si256(x, y)
+        unsafe { _mm256_and_si256(x, y) }
     }
 
     #[inline(always)]
     pub unsafe fn ch(x: __m256i, y: __m256i, z: __m256i) -> __m256i {
-        xor(z, and(x, xor(y, z)))
+        unsafe { xor(z, and(x, xor(y, z))) }
     }
 
     #[inline(always)]
     pub unsafe fn maj(x: __m256i, y: __m256i, z: __m256i) -> __m256i {
-        or(and(x, y), and(z, or(x, y)))
+        unsafe { or(and(x, y), and(z, or(x, y))) }
     }
 
     #[inline(always)]
     pub unsafe fn sigma0(x: __m256i) -> __m256i {
-        xor3(
-            or(_mm256_srli_epi32(x, 2), _mm256_slli_epi32(x, 30)),
-            or(_mm256_srli_epi32(x, 13), _mm256_slli_epi32(x, 19)),
-            or(_mm256_srli_epi32(x, 22), _mm256_slli_epi32(x, 10)),
-        )
+        unsafe {
+            xor3(
+                or(_mm256_srli_epi32(x, 2), _mm256_slli_epi32(x, 30)),
+                or(_mm256_srli_epi32(x, 13), _mm256_slli_epi32(x, 19)),
+                or(_mm256_srli_epi32(x, 22), _mm256_slli_epi32(x, 10)),
+            )
+        }
     }
 
     #[inline(always)]
     pub unsafe fn sigma1(x: __m256i) -> __m256i {
-        xor3(
-            or(_mm256_srli_epi32(x, 6), _mm256_slli_epi32(x, 26)),
-            or(_mm256_srli_epi32(x, 11), _mm256_slli_epi32(x, 21)),
-            or(_mm256_srli_epi32(x, 25), _mm256_slli_epi32(x, 7)),
-        )
+        unsafe {
+            xor3(
+                or(_mm256_srli_epi32(x, 6), _mm256_slli_epi32(x, 26)),
+                or(_mm256_srli_epi32(x, 11), _mm256_slli_epi32(x, 21)),
+                or(_mm256_srli_epi32(x, 25), _mm256_slli_epi32(x, 7)),
+            )
+        }
     }
 
     #[inline(always)]
     pub unsafe fn sigma0_small(x: __m256i) -> __m256i {
-        xor3(
-            or(_mm256_srli_epi32(x, 7), _mm256_slli_epi32(x, 25)),
-            or(_mm256_srli_epi32(x, 18), _mm256_slli_epi32(x, 14)),
-            _mm256_srli_epi32(x, 3),
-        )
+        unsafe {
+            xor3(
+                or(_mm256_srli_epi32(x, 7), _mm256_slli_epi32(x, 25)),
+                or(_mm256_srli_epi32(x, 18), _mm256_slli_epi32(x, 14)),
+                _mm256_srli_epi32(x, 3),
+            )
+        }
     }
 
     #[inline(always)]
     pub unsafe fn sigma1_small(x: __m256i) -> __m256i {
-        xor3(
-            or(_mm256_srli_epi32(x, 17), _mm256_slli_epi32(x, 15)),
-            or(_mm256_srli_epi32(x, 19), _mm256_slli_epi32(x, 13)),
-            _mm256_srli_epi32(x, 10),
-        )
+        unsafe {
+            xor3(
+                or(_mm256_srli_epi32(x, 17), _mm256_slli_epi32(x, 15)),
+                or(_mm256_srli_epi32(x, 19), _mm256_slli_epi32(x, 13)),
+                _mm256_srli_epi32(x, 10),
+            )
+        }
     }
 
     #[inline(always)]
     pub unsafe fn inc(x: &mut __m256i, y: __m256i) -> __m256i {
-        *x = add(*x, y);
-        *x
+        unsafe {
+            *x = add(*x, y);
+            *x
+        }
     }
 
     #[inline(always)]
     pub unsafe fn inc3(x: &mut __m256i, y: __m256i, z: __m256i) -> __m256i {
-        // Op: Inc(x, y, z) { x = Add(x, y, z); return x; }
-        // Op: Add(x, y, z) = Add(Add(x, y), z)
-        // So: x = Add(Add(x, y), z)
-        *x = add3(*x, y, z);
-        *x
+        unsafe {
+            // Op: Inc(x, y, z) { x = Add(x, y, z); return x; }
+            // Op: Add(x, y, z) = Add(Add(x, y), z)
+            // So: x = Add(Add(x, y), z)
+            *x = add3(*x, y, z);
+            *x
+        }
     }
 
     #[inline(always)]
     pub unsafe fn inc4(x: &mut __m256i, y: __m256i, z: __m256i, w: __m256i) -> __m256i {
-        // Op: Inc(x, y, z, w) { x = Add(x, y, z, w); return x; }
-        // Op: Add(x, y, z, w) = Add(Add(x, y), Add(z, w))
-        // So: x = Add(Add(x, y), Add(z, w))
-        *x = add4(*x, y, z, w);
-        *x
+        unsafe {
+            // Op: Inc(x, y, z, w) { x = Add(x, y, z, w); return x; }
+            // Op: Add(x, y, z, w) = Add(Add(x, y), Add(z, w))
+            // So: x = Add(Add(x, y), Add(z, w))
+            *x = add4(*x, y, z, w);
+            *x
+        }
     }
 }
 
@@ -178,74 +196,79 @@ macro_rules! round {
 /// Read 8 32-bit words from 8 different 64-byte blocks
 #[cfg(target_arch = "x86_64")]
 unsafe fn read8(input: &[u8], offset: usize) -> __m256i {
-    // Read 8 32-bit words from positions: offset, offset+64, offset+128, ..., offset+448
-    let mut words = [0u32; 8];
-    for (i, word) in words.iter_mut().enumerate() {
-        let pos = (i * 64) + offset;
-        *word = u32::from_le_bytes([input[pos], input[pos + 1], input[pos + 2], input[pos + 3]]);
+    unsafe {
+        // Read 8 32-bit words from positions: offset, offset+64, offset+128, ..., offset+448
+        let mut words = [0u32; 8];
+        for (i, word) in words.iter_mut().enumerate() {
+            let pos = (i * 64) + offset;
+            *word =
+                u32::from_le_bytes([input[pos], input[pos + 1], input[pos + 2], input[pos + 3]]);
+        }
+
+        // _mm256_set_epi32 places first argument at index 7, last at index 0
+        // ReadLE32(chunk + 0) is first arg -> index 7, ReadLE32(chunk + 64) is second arg -> index 6, etc.
+        // So words[0] (chunk + 0) should be first arg -> index 7
+        // ReadLE32(chunk + 0 + offset) as FIRST argument
+        // So chunk 0 goes to index 7, chunk 1 (chunk + 64) goes to index 6, etc.
+        // This means words[0] -> index 7, words[1] -> index 6, ..., words[7] -> index 0
+        let ret = _mm256_set_epi32(
+            words[0] as i32, // chunk + 0 -> index 7 (first arg)
+            words[1] as i32, // chunk + 64 -> index 6 (second arg)
+            words[2] as i32, // chunk + 128 -> index 5
+            words[3] as i32, // chunk + 192 -> index 4
+            words[4] as i32, // chunk + 256 -> index 3
+            words[5] as i32, // chunk + 320 -> index 2
+            words[6] as i32, // chunk + 384 -> index 1
+            words[7] as i32, // chunk + 448 -> index 0 (last arg)
+        );
+
+        // Byte swap within each 32-bit word using shuffle (matching reference)
+        // SHA256 operates on big-endian 32-bit words internally
+        // We read little-endian, so we need to byte-swap each word
+        // The shuffle mask 0x0C0D0E0F, 0x08090A0B, 0x04050607, 0x00010203
+        // reverses bytes within each 32-bit word
+        //
+        // Note: _mm256_shuffle_epi8 operates on 8-bit elements across the entire vector
+        // The mask pattern is designed to swap bytes within each word
+        let shuffle_mask = _mm256_set_epi32(
+            0x0C0D0E0F, 0x08090A0B, 0x04050607, 0x00010203, 0x0C0D0E0F, 0x08090A0B, 0x04050607,
+            0x00010203,
+        );
+        _mm256_shuffle_epi8(ret, shuffle_mask)
     }
-
-    // _mm256_set_epi32 places first argument at index 7, last at index 0
-    // ReadLE32(chunk + 0) is first arg -> index 7, ReadLE32(chunk + 64) is second arg -> index 6, etc.
-    // So words[0] (chunk + 0) should be first arg -> index 7
-    // ReadLE32(chunk + 0 + offset) as FIRST argument
-    // So chunk 0 goes to index 7, chunk 1 (chunk + 64) goes to index 6, etc.
-    // This means words[0] -> index 7, words[1] -> index 6, ..., words[7] -> index 0
-    let ret = _mm256_set_epi32(
-        words[0] as i32, // chunk + 0 -> index 7 (first arg)
-        words[1] as i32, // chunk + 64 -> index 6 (second arg)
-        words[2] as i32, // chunk + 128 -> index 5
-        words[3] as i32, // chunk + 192 -> index 4
-        words[4] as i32, // chunk + 256 -> index 3
-        words[5] as i32, // chunk + 320 -> index 2
-        words[6] as i32, // chunk + 384 -> index 1
-        words[7] as i32, // chunk + 448 -> index 0 (last arg)
-    );
-
-    // Byte swap within each 32-bit word using shuffle (matching reference)
-    // SHA256 operates on big-endian 32-bit words internally
-    // We read little-endian, so we need to byte-swap each word
-    // The shuffle mask 0x0C0D0E0F, 0x08090A0B, 0x04050607, 0x00010203
-    // reverses bytes within each 32-bit word
-    //
-    // Note: _mm256_shuffle_epi8 operates on 8-bit elements across the entire vector
-    // The mask pattern is designed to swap bytes within each word
-    let shuffle_mask = _mm256_set_epi32(
-        0x0C0D0E0F, 0x08090A0B, 0x04050607, 0x00010203, 0x0C0D0E0F, 0x08090A0B, 0x04050607,
-        0x00010203,
-    );
-    _mm256_shuffle_epi8(ret, shuffle_mask)
 }
 
 /// Write 8 32-bit words to 8 different output positions
 #[cfg(target_arch = "x86_64")]
 unsafe fn write8(out: &mut [u8], offset: usize, v: __m256i) {
-    // Write8: byte-swap with shuffle, then WriteLE32 to each position
-    // Byte swap within each 32-bit word using shuffle
-    let shuffle_mask = _mm256_set_epi32(
-        0x0C0D0E0F, 0x08090A0B, 0x04050607, 0x00010203, 0x0C0D0E0F, 0x08090A0B, 0x04050607,
-        0x00010203,
-    );
-    let v = _mm256_shuffle_epi8(v, shuffle_mask);
+    unsafe {
+        // Write8: byte-swap with shuffle, then WriteLE32 to each position
+        // Byte swap within each 32-bit word using shuffle
+        let shuffle_mask = _mm256_set_epi32(
+            0x0C0D0E0F, 0x08090A0B, 0x04050607, 0x00010203, 0x0C0D0E0F, 0x08090A0B, 0x04050607,
+            0x00010203,
+        );
+        let v = _mm256_shuffle_epi8(v, shuffle_mask);
 
-    // Extract and write to 8 different positions (WriteLE32)
-    // Unroll loop because _mm256_extract_epi32 requires compile-time constant index
-    let word0 = _mm256_extract_epi32(v, 7) as u32;
-    out[offset..offset + 4].copy_from_slice(&word0.to_le_bytes());
-    let word1 = _mm256_extract_epi32(v, 6) as u32;
-    out[offset + 32..offset + 36].copy_from_slice(&word1.to_le_bytes());
-    let word2 = _mm256_extract_epi32(v, 5) as u32;
-    out[offset + 64..offset + 68].copy_from_slice(&word2.to_le_bytes());
-    let word3 = _mm256_extract_epi32(v, 4) as u32;
-    out[offset + 96..offset + 100].copy_from_slice(&word3.to_le_bytes());
-    let word4 = _mm256_extract_epi32(v, 3) as u32;
-    out[offset + 128..offset + 132].copy_from_slice(&word4.to_le_bytes());
-    let word5 = _mm256_extract_epi32(v, 2) as u32;
-    out[offset + 160..offset + 164].copy_from_slice(&word5.to_le_bytes());
-    let word6 = _mm256_extract_epi32(v, 1) as u32;
-    out[offset + 192..offset + 196].copy_from_slice(&word6.to_le_bytes());
-    let word7 = _mm256_extract_epi32(v, 0) as u32;
-    out[offset + 224..offset + 228].copy_from_slice(&word7.to_le_bytes());
+        // Extract and write to 8 different positions (WriteLE32)
+        // Unroll loop because _mm256_extract_epi32 requires compile-time constant index
+        let word0 = _mm256_extract_epi32(v, 7) as u32;
+        out[offset..offset + 4].copy_from_slice(&word0.to_le_bytes());
+        let word1 = _mm256_extract_epi32(v, 6) as u32;
+        out[offset + 32..offset + 36].copy_from_slice(&word1.to_le_bytes());
+        let word2 = _mm256_extract_epi32(v, 5) as u32;
+        out[offset + 64..offset + 68].copy_from_slice(&word2.to_le_bytes());
+        let word3 = _mm256_extract_epi32(v, 4) as u32;
+        out[offset + 96..offset + 100].copy_from_slice(&word3.to_le_bytes());
+        let word4 = _mm256_extract_epi32(v, 3) as u32;
+        out[offset + 128..offset + 132].copy_from_slice(&word4.to_le_bytes());
+        let word5 = _mm256_extract_epi32(v, 2) as u32;
+        out[offset + 160..offset + 164].copy_from_slice(&word5.to_le_bytes());
+        let word6 = _mm256_extract_epi32(v, 1) as u32;
+        out[offset + 192..offset + 196].copy_from_slice(&word6.to_le_bytes());
+        let word7 = _mm256_extract_epi32(v, 0) as u32;
+        out[offset + 224..offset + 228].copy_from_slice(&word7.to_le_bytes());
+    }
 }
 
 /// Transform 8 double SHA256 blocks in parallel (SHA256D)
@@ -255,1188 +278,1234 @@ unsafe fn write8(out: &mut [u8], offset: usize, v: __m256i) {
 /// This performs double SHA256 (SHA256(SHA256(input))) on 8 blocks in parallel.
 #[cfg(target_arch = "x86_64")]
 unsafe fn transform_8way(out: &mut [u8], input: &[u8]) {
-    use helpers::*;
+    unsafe {
+        use helpers::*;
 
-    // Initialize state with initial hash values (host byte order)
-    let mut a = _mm256_set1_epi32(INITIAL_HASH.0[0] as i32);
-    let mut b = _mm256_set1_epi32(INITIAL_HASH.0[1] as i32);
-    let mut c = _mm256_set1_epi32(INITIAL_HASH.0[2] as i32);
-    let mut d = _mm256_set1_epi32(INITIAL_HASH.0[3] as i32);
-    let mut e = _mm256_set1_epi32(INITIAL_HASH.0[4] as i32);
-    let mut f = _mm256_set1_epi32(INITIAL_HASH.0[5] as i32);
-    let mut g = _mm256_set1_epi32(INITIAL_HASH.0[6] as i32);
-    let mut h = _mm256_set1_epi32(INITIAL_HASH.0[7] as i32);
+        // Initialize state with initial hash values (host byte order)
+        let mut a = _mm256_set1_epi32(INITIAL_HASH.0[0] as i32);
+        let mut b = _mm256_set1_epi32(INITIAL_HASH.0[1] as i32);
+        let mut c = _mm256_set1_epi32(INITIAL_HASH.0[2] as i32);
+        let mut d = _mm256_set1_epi32(INITIAL_HASH.0[3] as i32);
+        let mut e = _mm256_set1_epi32(INITIAL_HASH.0[4] as i32);
+        let mut f = _mm256_set1_epi32(INITIAL_HASH.0[5] as i32);
+        let mut g = _mm256_set1_epi32(INITIAL_HASH.0[6] as i32);
+        let mut h = _mm256_set1_epi32(INITIAL_HASH.0[7] as i32);
 
-    #[cfg(debug_assertions)]
-    {
-        let a_init = _mm256_extract_epi32(a, 0) as u32;
-        let h_init = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG Transform 1 initial state: a=0x{a_init:08x} (expected 0x6a09e667), h=0x{h_init:08x} (expected 0x5be0cd19)");
-    }
-
-    // Message schedule (W array)
-    let mut w0: __m256i;
-    let mut w1: __m256i;
-    let mut w2: __m256i;
-    let mut w3: __m256i;
-    let mut w4: __m256i;
-    let mut w5: __m256i;
-    let mut w6: __m256i;
-    let mut w7: __m256i;
-    let mut w8: __m256i;
-    let mut w9: __m256i;
-    let mut w10: __m256i;
-    let mut w11: __m256i;
-    let mut w12: __m256i;
-    let mut w13: __m256i;
-    let mut w14: __m256i;
-    let mut w15: __m256i;
-
-    // Rounds 0-15: Read from input
-    w0 = read8(input, 0);
-    // Debug: Check what we read for zero input
-    #[cfg(debug_assertions)]
-    {
-        let w0_val = _mm256_extract_epi32(w0, 0) as u32;
-        let w0_val_7 = _mm256_extract_epi32(w0, 7) as u32;
-        println!("DEBUG: w0 after read8 and shuffle: index 0 = 0x{w0_val:08x}, index 7 = 0x{w0_val_7:08x}");
-        if w0_val == 0 && w0_val_7 == 0 {
-            println!("DEBUG: w0 is zero (expected for zero input)");
+        #[cfg(debug_assertions)]
+        {
+            let a_init = _mm256_extract_epi32(a, 0) as u32;
+            let h_init = _mm256_extract_epi32(h, 0) as u32;
+            println!(
+                "DEBUG Transform 1 initial state: a=0x{a_init:08x} (expected 0x6a09e667), h=0x{h_init:08x} (expected 0x5be0cd19)"
+            );
         }
-    }
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[0]), w0));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_round0 = _mm256_extract_epi32(a, 0) as u32;
-        let h_after_round0 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG After round 0: a=0x{a_after_round0:08x}, h=0x{h_after_round0:08x}");
-    }
-    w1 = read8(input, 4);
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[1]), w1));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_round1 = _mm256_extract_epi32(a, 0) as u32;
-        let h_after_round1 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG After round 1: a=0x{a_after_round1:08x}, h=0x{h_after_round1:08x}");
-    }
-    w2 = read8(input, 8);
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[2]), w2));
-    w3 = read8(input, 12);
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[3]), w3));
-    w4 = read8(input, 16);
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[4]), w4));
-    w5 = read8(input, 20);
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[5]), w5));
-    w6 = read8(input, 24);
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[6]), w6));
-    w7 = read8(input, 28);
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[7]), w7));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_round7 = _mm256_extract_epi32(a, 0) as u32;
-        let b_after_round7 = _mm256_extract_epi32(b, 0) as u32;
-        let h_after_round7 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG After round 7: a=0x{a_after_round7:08x}, b=0x{b_after_round7:08x}, h=0x{h_after_round7:08x}");
-    }
-    w8 = read8(input, 32);
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[8]), w8));
-    w9 = read8(input, 36);
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[9]), w9));
-    w10 = read8(input, 40);
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[10]), w10));
-    w11 = read8(input, 44);
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[11]), w11));
-    w12 = read8(input, 48);
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[12]), w12));
-    w13 = read8(input, 52);
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[13]), w13));
-    w14 = read8(input, 56);
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[14]), w14));
-    w15 = read8(input, 60);
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[15]), w15));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_round15 = _mm256_extract_epi32(a, 0) as u32;
-        let h_after_round15 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG After round 15: a=0x{a_after_round15:08x}, h=0x{h_after_round15:08x}");
-    }
 
-    // Rounds 16-63: Message schedule
-    // Formula: Inc(w0, sigma1(w14), w9, sigma0(w1)) = Add(Add(w0, sigma1(w14)), Add(w9, sigma0(w1)))
-    #[cfg(debug_assertions)]
-    {
-        let w0_before = _mm256_extract_epi32(w0, 0) as u32;
-        let w14_val = _mm256_extract_epi32(w14, 0) as u32;
-        let w9_val = _mm256_extract_epi32(w9, 0) as u32;
-        let w1_val = _mm256_extract_epi32(w1, 0) as u32;
-        println!("DEBUG Round 16 before inc4: w0=0x{w0_before:08x}, w14=0x{w14_val:08x}, w9=0x{w9_val:08x}, w1=0x{w1_val:08x}");
-    }
-    helpers::inc4(
-        &mut w0,
-        helpers::sigma1_small(w14),
-        w9,
-        helpers::sigma0_small(w1),
-    );
-    #[cfg(debug_assertions)]
-    {
-        let w0_after_inc = _mm256_extract_epi32(w0, 0) as u32;
-        println!("DEBUG After inc4 w0 (round 16): w0=0x{w0_after_inc:08x}");
-    }
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[16]), w0));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_round16 = _mm256_extract_epi32(a, 0) as u32;
-        let b_after_round16 = _mm256_extract_epi32(b, 0) as u32;
-        let c_after_round16 = _mm256_extract_epi32(c, 0) as u32;
-        let d_after_round16 = _mm256_extract_epi32(d, 0) as u32;
-        let e_after_round16 = _mm256_extract_epi32(e, 0) as u32;
-        let f_after_round16 = _mm256_extract_epi32(f, 0) as u32;
-        let g_after_round16 = _mm256_extract_epi32(g, 0) as u32;
-        let h_after_round16 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG After round 16: a=0x{a_after_round16:08x} b=0x{b_after_round16:08x} c=0x{c_after_round16:08x} d=0x{d_after_round16:08x} e=0x{e_after_round16:08x} f=0x{f_after_round16:08x} g=0x{g_after_round16:08x} h=0x{h_after_round16:08x}");
-    }
-    helpers::inc4(
-        &mut w1,
-        helpers::sigma1_small(w15),
-        w10,
-        helpers::sigma0_small(w2),
-    );
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[17]), w1));
-    helpers::inc4(
-        &mut w2,
-        helpers::sigma1_small(w0),
-        w11,
-        helpers::sigma0_small(w3),
-    );
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[18]), w2));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_round18 = _mm256_extract_epi32(a, 0) as u32;
-        println!("DEBUG After round 18: a=0x{a_after_round18:08x}");
-    }
-    helpers::inc4(
-        &mut w3,
-        helpers::sigma1_small(w1),
-        w12,
-        helpers::sigma0_small(w4),
-    );
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[19]), w3));
-    helpers::inc4(
-        &mut w4,
-        helpers::sigma1_small(w2),
-        w13,
-        helpers::sigma0_small(w5),
-    );
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[20]), w4));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_round20 = _mm256_extract_epi32(a, 0) as u32;
-        println!("DEBUG After round 20: a=0x{a_after_round20:08x}");
-    }
-    helpers::inc4(
-        &mut w5,
-        helpers::sigma1_small(w3),
-        w14,
-        helpers::sigma0_small(w6),
-    );
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[21]), w5));
-    helpers::inc4(
-        &mut w6,
-        helpers::sigma1_small(w4),
-        w15,
-        helpers::sigma0_small(w7),
-    );
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[22]), w6));
-    helpers::inc4(
-        &mut w7,
-        helpers::sigma1_small(w5),
-        w0,
-        helpers::sigma0_small(w8),
-    );
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[23]), w7));
-    helpers::inc4(
-        &mut w8,
-        helpers::sigma1_small(w6),
-        w1,
-        helpers::sigma0_small(w9),
-    );
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[24]), w8));
-    helpers::inc4(
-        &mut w9,
-        helpers::sigma1_small(w7),
-        w2,
-        helpers::sigma0_small(w10),
-    );
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[25]), w9));
-    helpers::inc4(
-        &mut w10,
-        helpers::sigma1_small(w8),
-        w3,
-        helpers::sigma0_small(w11),
-    );
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[26]), w10));
-    helpers::inc4(
-        &mut w11,
-        helpers::sigma1_small(w9),
-        w4,
-        helpers::sigma0_small(w12),
-    );
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[27]), w11));
-    helpers::inc4(
-        &mut w12,
-        helpers::sigma1_small(w10),
-        w5,
-        helpers::sigma0_small(w13),
-    );
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[28]), w12));
-    helpers::inc4(
-        &mut w13,
-        helpers::sigma1_small(w11),
-        w6,
-        helpers::sigma0_small(w14),
-    );
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[29]), w13));
-    helpers::inc4(
-        &mut w14,
-        helpers::sigma1_small(w12),
-        w7,
-        helpers::sigma0_small(w15),
-    );
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[30]), w14));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_round30 = _mm256_extract_epi32(a, 0) as u32;
-        println!("DEBUG After round 30: a=0x{a_after_round30:08x}");
-    }
-    // Message schedule Transform 1 round 31: Inc(w15, sigma1(w13), w8, sigma0(w0)) - no k(0x100) in Transform 1
-    #[cfg(debug_assertions)]
-    {
-        let a_before_round31 = _mm256_extract_epi32(a, 0) as u32;
-        let b_before_round31 = _mm256_extract_epi32(b, 0) as u32;
-        let c_before_round31 = _mm256_extract_epi32(c, 0) as u32;
-        let d_before_round31 = _mm256_extract_epi32(d, 0) as u32;
-        let e_before_round31 = _mm256_extract_epi32(e, 0) as u32;
-        let f_before_round31 = _mm256_extract_epi32(f, 0) as u32;
-        let g_before_round31 = _mm256_extract_epi32(g, 0) as u32;
-        let h_before_round31 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG Before round 31: a=0x{a_before_round31:08x} b=0x{b_before_round31:08x} c=0x{c_before_round31:08x} d=0x{d_before_round31:08x} e=0x{e_before_round31:08x} f=0x{f_before_round31:08x} g=0x{g_before_round31:08x} h=0x{h_before_round31:08x}");
-        let w15_before = _mm256_extract_epi32(w15, 0) as u32;
-        let w13_val = _mm256_extract_epi32(w13, 0) as u32;
-        let w8_val = _mm256_extract_epi32(w8, 0) as u32;
-        let w0_val = _mm256_extract_epi32(w0, 0) as u32;
-        let w11_val = _mm256_extract_epi32(w11, 0) as u32;
-        let w6_val = _mm256_extract_epi32(w6, 0) as u32;
-        println!("DEBUG w15 before inc4: 0x{w15_before:08x}, w13: 0x{w13_val:08x}, w8: 0x{w8_val:08x}, w0: 0x{w0_val:08x}");
-        println!("DEBUG w11: 0x{w11_val:08x}, w6: 0x{w6_val:08x}");
-        let sigma1_w13 = _mm256_extract_epi32(helpers::sigma1_small(w13), 0) as u32;
-        let sigma0_w0 = _mm256_extract_epi32(helpers::sigma0_small(w0), 0) as u32;
-        println!(
-            "DEBUG sigma1_small(w13): 0x{sigma1_w13:08x}, sigma0_small(w0): 0x{sigma0_w0:08x}"
+        // Message schedule (W array)
+        let mut w0: __m256i;
+        let mut w1: __m256i;
+        let mut w2: __m256i;
+        let mut w3: __m256i;
+        let mut w4: __m256i;
+        let mut w5: __m256i;
+        let mut w6: __m256i;
+        let mut w7: __m256i;
+        let mut w8: __m256i;
+        let mut w9: __m256i;
+        let mut w10: __m256i;
+        let mut w11: __m256i;
+        let mut w12: __m256i;
+        let mut w13: __m256i;
+        let mut w14: __m256i;
+        let mut w15: __m256i;
+
+        // Rounds 0-15: Read from input
+        w0 = read8(input, 0);
+        // Debug: Check what we read for zero input
+        #[cfg(debug_assertions)]
+        {
+            let w0_val = _mm256_extract_epi32(w0, 0) as u32;
+            let w0_val_7 = _mm256_extract_epi32(w0, 7) as u32;
+            println!(
+                "DEBUG: w0 after read8 and shuffle: index 0 = 0x{w0_val:08x}, index 7 = 0x{w0_val_7:08x}"
+            );
+            if w0_val == 0 && w0_val_7 == 0 {
+                println!("DEBUG: w0 is zero (expected for zero input)");
+            }
+        }
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[0]), w0));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_round0 = _mm256_extract_epi32(a, 0) as u32;
+            let h_after_round0 = _mm256_extract_epi32(h, 0) as u32;
+            println!("DEBUG After round 0: a=0x{a_after_round0:08x}, h=0x{h_after_round0:08x}");
+        }
+        w1 = read8(input, 4);
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[1]), w1));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_round1 = _mm256_extract_epi32(a, 0) as u32;
+            let h_after_round1 = _mm256_extract_epi32(h, 0) as u32;
+            println!("DEBUG After round 1: a=0x{a_after_round1:08x}, h=0x{h_after_round1:08x}");
+        }
+        w2 = read8(input, 8);
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[2]), w2));
+        w3 = read8(input, 12);
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[3]), w3));
+        w4 = read8(input, 16);
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[4]), w4));
+        w5 = read8(input, 20);
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[5]), w5));
+        w6 = read8(input, 24);
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[6]), w6));
+        w7 = read8(input, 28);
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[7]), w7));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_round7 = _mm256_extract_epi32(a, 0) as u32;
+            let b_after_round7 = _mm256_extract_epi32(b, 0) as u32;
+            let h_after_round7 = _mm256_extract_epi32(h, 0) as u32;
+            println!(
+                "DEBUG After round 7: a=0x{a_after_round7:08x}, b=0x{b_after_round7:08x}, h=0x{h_after_round7:08x}"
+            );
+        }
+        w8 = read8(input, 32);
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[8]), w8));
+        w9 = read8(input, 36);
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[9]), w9));
+        w10 = read8(input, 40);
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[10]), w10));
+        w11 = read8(input, 44);
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[11]), w11));
+        w12 = read8(input, 48);
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[12]), w12));
+        w13 = read8(input, 52);
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[13]), w13));
+        w14 = read8(input, 56);
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[14]), w14));
+        w15 = read8(input, 60);
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[15]), w15));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_round15 = _mm256_extract_epi32(a, 0) as u32;
+            let h_after_round15 = _mm256_extract_epi32(h, 0) as u32;
+            println!("DEBUG After round 15: a=0x{a_after_round15:08x}, h=0x{h_after_round15:08x}");
+        }
+
+        // Rounds 16-63: Message schedule
+        // Formula: Inc(w0, sigma1(w14), w9, sigma0(w1)) = Add(Add(w0, sigma1(w14)), Add(w9, sigma0(w1)))
+        #[cfg(debug_assertions)]
+        {
+            let w0_before = _mm256_extract_epi32(w0, 0) as u32;
+            let w14_val = _mm256_extract_epi32(w14, 0) as u32;
+            let w9_val = _mm256_extract_epi32(w9, 0) as u32;
+            let w1_val = _mm256_extract_epi32(w1, 0) as u32;
+            println!(
+                "DEBUG Round 16 before inc4: w0=0x{w0_before:08x}, w14=0x{w14_val:08x}, w9=0x{w9_val:08x}, w1=0x{w1_val:08x}"
+            );
+        }
+        helpers::inc4(
+            &mut w0,
+            helpers::sigma1_small(w14),
+            w9,
+            helpers::sigma0_small(w1),
         );
-    }
-    helpers::inc4(
-        &mut w15,
-        helpers::sigma1_small(w13),
-        w8,
-        helpers::sigma0_small(w0),
-    );
-    #[cfg(debug_assertions)]
-    {
-        let w15_after = _mm256_extract_epi32(w15, 0) as u32;
-        println!("DEBUG w15 after inc4: 0x{w15_after:08x}");
-        let k31 = K_ARRAY.0[31];
-        println!("DEBUG K_ARRAY.0[31] = 0x{k31:08x}");
-    }
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[31]), w15));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_round31 = _mm256_extract_epi32(a, 0) as u32;
-        let b_after_round31 = _mm256_extract_epi32(b, 0) as u32;
-        let c_after_round31 = _mm256_extract_epi32(c, 0) as u32;
-        let d_after_round31 = _mm256_extract_epi32(d, 0) as u32;
-        let e_after_round31 = _mm256_extract_epi32(e, 0) as u32;
-        let f_after_round31 = _mm256_extract_epi32(f, 0) as u32;
-        let g_after_round31 = _mm256_extract_epi32(g, 0) as u32;
-        let h_after_round31 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG After round 31: a=0x{a_after_round31:08x} b=0x{b_after_round31:08x} c=0x{c_after_round31:08x} d=0x{d_after_round31:08x} e=0x{e_after_round31:08x} f=0x{f_after_round31:08x} g=0x{g_after_round31:08x} h=0x{h_after_round31:08x}");
-    }
-    helpers::inc4(
-        &mut w0,
-        helpers::sigma1_small(w14),
-        w9,
-        helpers::sigma0_small(w1),
-    );
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[32]), w0));
-    helpers::inc4(
-        &mut w1,
-        helpers::sigma1_small(w15),
-        w10,
-        helpers::sigma0_small(w2),
-    );
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[33]), w1));
-    helpers::inc4(
-        &mut w2,
-        helpers::sigma1_small(w0),
-        w11,
-        helpers::sigma0_small(w3),
-    );
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[34]), w2));
-    helpers::inc4(
-        &mut w3,
-        helpers::sigma1_small(w1),
-        w12,
-        helpers::sigma0_small(w4),
-    );
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[35]), w3));
-    helpers::inc4(
-        &mut w4,
-        helpers::sigma1_small(w2),
-        w13,
-        helpers::sigma0_small(w5),
-    );
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[36]), w4));
-    helpers::inc4(
-        &mut w5,
-        helpers::sigma1_small(w3),
-        w14,
-        helpers::sigma0_small(w6),
-    );
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[37]), w5));
-    helpers::inc4(
-        &mut w6,
-        helpers::sigma1_small(w4),
-        w15,
-        helpers::sigma0_small(w7),
-    );
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[38]), w6));
-    helpers::inc4(
-        &mut w7,
-        helpers::sigma1_small(w5),
-        w0,
-        helpers::sigma0_small(w8),
-    );
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[39]), w7));
-    helpers::inc4(
-        &mut w8,
-        helpers::sigma1_small(w6),
-        w1,
-        helpers::sigma0_small(w9),
-    );
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[40]), w8));
-    helpers::inc4(
-        &mut w9,
-        helpers::sigma1_small(w7),
-        w2,
-        helpers::sigma0_small(w10),
-    );
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[41]), w9));
-    helpers::inc4(
-        &mut w10,
-        helpers::sigma1_small(w8),
-        w3,
-        helpers::sigma0_small(w11),
-    );
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[42]), w10));
-    helpers::inc4(
-        &mut w11,
-        helpers::sigma1_small(w9),
-        w4,
-        helpers::sigma0_small(w12),
-    );
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[43]), w11));
-    helpers::inc4(
-        &mut w12,
-        helpers::sigma1_small(w10),
-        w5,
-        helpers::sigma0_small(w13),
-    );
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[44]), w12));
-    helpers::inc4(
-        &mut w13,
-        helpers::sigma1_small(w11),
-        w6,
-        helpers::sigma0_small(w14),
-    );
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[45]), w13));
-    helpers::inc4(
-        &mut w14,
-        helpers::sigma1_small(w12),
-        w7,
-        helpers::sigma0_small(w15),
-    );
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[46]), w14));
-    helpers::inc4(
-        &mut w15,
-        helpers::sigma1_small(w13),
-        w8,
-        helpers::sigma0_small(w0),
-    );
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[47]), w15));
-    helpers::inc4(
-        &mut w0,
-        helpers::sigma1_small(w14),
-        w9,
-        helpers::sigma0_small(w1),
-    );
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[48]), w0));
-    helpers::inc4(
-        &mut w1,
-        helpers::sigma1_small(w15),
-        w10,
-        helpers::sigma0_small(w2),
-    );
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[49]), w1));
-    helpers::inc4(
-        &mut w2,
-        helpers::sigma1_small(w0),
-        w11,
-        helpers::sigma0_small(w3),
-    );
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[50]), w2));
-    helpers::inc4(
-        &mut w3,
-        helpers::sigma1_small(w1),
-        w12,
-        helpers::sigma0_small(w4),
-    );
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[51]), w3));
-    helpers::inc4(
-        &mut w4,
-        helpers::sigma1_small(w2),
-        w13,
-        helpers::sigma0_small(w5),
-    );
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[52]), w4));
-    helpers::inc4(
-        &mut w5,
-        helpers::sigma1_small(w3),
-        w14,
-        helpers::sigma0_small(w6),
-    );
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[53]), w5));
-    helpers::inc4(
-        &mut w6,
-        helpers::sigma1_small(w4),
-        w15,
-        helpers::sigma0_small(w7),
-    );
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[54]), w6));
-    helpers::inc4(
-        &mut w7,
-        helpers::sigma1_small(w5),
-        w0,
-        helpers::sigma0_small(w8),
-    );
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[55]), w7));
-    helpers::inc4(
-        &mut w8,
-        helpers::sigma1_small(w6),
-        w1,
-        helpers::sigma0_small(w9),
-    );
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[56]), w8));
-    helpers::inc4(
-        &mut w9,
-        helpers::sigma1_small(w7),
-        w2,
-        helpers::sigma0_small(w10),
-    );
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[57]), w9));
-    helpers::inc4(
-        &mut w10,
-        helpers::sigma1_small(w8),
-        w3,
-        helpers::sigma0_small(w11),
-    );
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[58]), w10));
-    helpers::inc4(
-        &mut w11,
-        helpers::sigma1_small(w9),
-        w4,
-        helpers::sigma0_small(w12),
-    );
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[59]), w11));
-    helpers::inc4(
-        &mut w12,
-        helpers::sigma1_small(w10),
-        w5,
-        helpers::sigma0_small(w13),
-    );
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[60]), w12));
-    helpers::inc4(
-        &mut w13,
-        helpers::sigma1_small(w11),
-        w6,
-        helpers::sigma0_small(w14),
-    );
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[61]), w13));
-    helpers::inc4(
-        &mut w14,
-        helpers::sigma1_small(w12),
-        w7,
-        helpers::sigma0_small(w15),
-    );
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[62]), w14));
-    helpers::inc4(
-        &mut w15,
-        helpers::sigma1_small(w13),
-        w8,
-        helpers::sigma0_small(w0),
-    );
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[63]), w15));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_round63 = _mm256_extract_epi32(a, 0) as u32;
-        let b_after_round63 = _mm256_extract_epi32(b, 0) as u32;
-        let c_after_round63 = _mm256_extract_epi32(c, 0) as u32;
-        let d_after_round63 = _mm256_extract_epi32(d, 0) as u32;
-        let e_after_round63 = _mm256_extract_epi32(e, 0) as u32;
-        let f_after_round63 = _mm256_extract_epi32(f, 0) as u32;
-        let g_after_round63 = _mm256_extract_epi32(g, 0) as u32;
-        let h_after_round63 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG After round 63: a=0x{a_after_round63:08x} b=0x{b_after_round63:08x} c=0x{c_after_round63:08x} d=0x{d_after_round63:08x} e=0x{e_after_round63:08x} f=0x{f_after_round63:08x} g=0x{g_after_round63:08x} h=0x{h_after_round63:08x}");
-        // Expected state after 64 rounds for zero input (before adding initial hash)
-        // First SHA256 of 64 zero bytes should produce: 0x42fda5f5 (little-endian of first word)
-        // So a should be: 0x42fda5f5 - 0x6a09e667 = 0xd8f3bf8e
-        println!("DEBUG Expected a after round 63: 0xd8f3bf8e (0x42fda5f5 - 0x6a09e667)");
-        println!(
-            "DEBUG Difference: 0x{:08x}",
-            a_after_round63.wrapping_sub(0xd8f3bf8e)
+        #[cfg(debug_assertions)]
+        {
+            let w0_after_inc = _mm256_extract_epi32(w0, 0) as u32;
+            println!("DEBUG After inc4 w0 (round 16): w0=0x{w0_after_inc:08x}");
+        }
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[16]), w0));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_round16 = _mm256_extract_epi32(a, 0) as u32;
+            let b_after_round16 = _mm256_extract_epi32(b, 0) as u32;
+            let c_after_round16 = _mm256_extract_epi32(c, 0) as u32;
+            let d_after_round16 = _mm256_extract_epi32(d, 0) as u32;
+            let e_after_round16 = _mm256_extract_epi32(e, 0) as u32;
+            let f_after_round16 = _mm256_extract_epi32(f, 0) as u32;
+            let g_after_round16 = _mm256_extract_epi32(g, 0) as u32;
+            let h_after_round16 = _mm256_extract_epi32(h, 0) as u32;
+            println!(
+                "DEBUG After round 16: a=0x{a_after_round16:08x} b=0x{b_after_round16:08x} c=0x{c_after_round16:08x} d=0x{d_after_round16:08x} e=0x{e_after_round16:08x} f=0x{f_after_round16:08x} g=0x{g_after_round16:08x} h=0x{h_after_round16:08x}"
+            );
+        }
+        helpers::inc4(
+            &mut w1,
+            helpers::sigma1_small(w15),
+            w10,
+            helpers::sigma0_small(w2),
         );
-    }
-
-    // Add initial hash values (Transform 1 complete)
-    #[cfg(debug_assertions)]
-    {
-        let a_before = _mm256_extract_epi32(a, 0) as u32;
-        let h_before = _mm256_extract_epi32(h, 0) as u32;
-        println!(
-            "DEBUG Transform 1 before adding initial hash: a=0x{a_before:08x}, h=0x{h_before:08x}"
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[17]), w1));
+        helpers::inc4(
+            &mut w2,
+            helpers::sigma1_small(w0),
+            w11,
+            helpers::sigma0_small(w3),
         );
-        println!("Expected SHA256(64 zeros) first word: 0xf5a5fd42");
-    }
-    a = add(a, k(INITIAL_HASH.0[0]));
-    b = add(b, k(INITIAL_HASH.0[1]));
-    c = add(c, k(INITIAL_HASH.0[2]));
-    d = add(d, k(INITIAL_HASH.0[3]));
-    e = add(e, k(INITIAL_HASH.0[4]));
-    f = add(f, k(INITIAL_HASH.0[5]));
-    g = add(g, k(INITIAL_HASH.0[6]));
-    h = add(h, k(INITIAL_HASH.0[7]));
-    #[cfg(debug_assertions)]
-    {
-        let a_after = _mm256_extract_epi32(a, 0) as u32;
-        let h_after = _mm256_extract_epi32(h, 0) as u32;
-        println!(
-            "DEBUG Transform 1 after adding initial hash: a=0x{a_after:08x}, h=0x{h_after:08x}"
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[18]), w2));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_round18 = _mm256_extract_epi32(a, 0) as u32;
+            println!("DEBUG After round 18: a=0x{a_after_round18:08x}");
+        }
+        helpers::inc4(
+            &mut w3,
+            helpers::sigma1_small(w1),
+            w12,
+            helpers::sigma0_small(w4),
         );
-        println!("Expected: a=0xf5a5fd42 (from SHA256(64 zeros))");
-    }
-
-    // Save state for Transform 3
-    #[cfg(debug_assertions)]
-    {
-        let a_before_t2 = _mm256_extract_epi32(a, 0) as u32;
-        let b_before_t2 = _mm256_extract_epi32(b, 0) as u32;
-        println!("DEBUG Transform 2 starting state: a=0x{a_before_t2:08x}, b=0x{b_before_t2:08x}");
-    }
-    let t0 = a;
-    let t1 = b;
-    let t2 = c;
-    let t3 = d;
-    let t4 = e;
-    let t5 = f;
-    let t6 = g;
-    let t7 = h;
-
-    // Transform 2: Process padding block (0x80000000, zeros, length 0x200)
-    // State is NOT reset - continues from Transform 1
-
-    // Transform 2 uses different K constants
-    round!(a, b, c, d, e, f, g, h, k(0xc28a2f98));
-    round!(h, a, b, c, d, e, f, g, k(0x71374491));
-    round!(g, h, a, b, c, d, e, f, k(0xb5c0fbcf));
-    round!(f, g, h, a, b, c, d, e, k(0xe9b5dba5));
-    round!(e, f, g, h, a, b, c, d, k(0x3956c25b));
-    round!(d, e, f, g, h, a, b, c, k(0x59f111f1));
-    round!(c, d, e, f, g, h, a, b, k(0x923f82a4));
-    round!(b, c, d, e, f, g, h, a, k(0xab1c5ed5));
-    round!(a, b, c, d, e, f, g, h, k(0xd807aa98));
-    round!(h, a, b, c, d, e, f, g, k(0x12835b01));
-    round!(g, h, a, b, c, d, e, f, k(0x243185be));
-    round!(f, g, h, a, b, c, d, e, k(0x550c7dc3));
-    round!(e, f, g, h, a, b, c, d, k(0x72be5d74));
-    round!(d, e, f, g, h, a, b, c, k(0x80deb1fe));
-    round!(c, d, e, f, g, h, a, b, k(0x9bdc06a7));
-    round!(b, c, d, e, f, g, h, a, k(0xc19bf374));
-    round!(a, b, c, d, e, f, g, h, k(0x649b69c1));
-    round!(h, a, b, c, d, e, f, g, k(0xf0fe4786));
-    round!(g, h, a, b, c, d, e, f, k(0x0fe1edc6));
-    round!(f, g, h, a, b, c, d, e, k(0x240cf254));
-    round!(e, f, g, h, a, b, c, d, k(0x4fe9346f));
-    round!(d, e, f, g, h, a, b, c, k(0x6cc984be));
-    round!(c, d, e, f, g, h, a, b, k(0x61b9411e));
-    round!(b, c, d, e, f, g, h, a, k(0x16f988fa));
-    round!(a, b, c, d, e, f, g, h, k(0xf2c65152));
-    round!(h, a, b, c, d, e, f, g, k(0xa88e5a6d));
-    round!(g, h, a, b, c, d, e, f, k(0xb019fc65));
-    round!(f, g, h, a, b, c, d, e, k(0xb9d99ec7));
-    round!(e, f, g, h, a, b, c, d, k(0x9a1231c3));
-    round!(d, e, f, g, h, a, b, c, k(0xe70eeaa0));
-    round!(c, d, e, f, g, h, a, b, k(0xfdb1232b));
-    round!(b, c, d, e, f, g, h, a, k(0xc7353eb0));
-    round!(a, b, c, d, e, f, g, h, k(0x3069bad5));
-    round!(h, a, b, c, d, e, f, g, k(0xcb976d5f));
-    round!(g, h, a, b, c, d, e, f, k(0x5a0f118f));
-    round!(f, g, h, a, b, c, d, e, k(0xdc1eeefd));
-    round!(e, f, g, h, a, b, c, d, k(0x0a35b689));
-    round!(d, e, f, g, h, a, b, c, k(0xde0b7a04));
-    round!(c, d, e, f, g, h, a, b, k(0x58f4ca9d));
-    round!(b, c, d, e, f, g, h, a, k(0xe15d5b16));
-    round!(a, b, c, d, e, f, g, h, k(0x007f3e86));
-    round!(h, a, b, c, d, e, f, g, k(0x37088980));
-    round!(g, h, a, b, c, d, e, f, k(0xa507ea32));
-    round!(f, g, h, a, b, c, d, e, k(0x6fab9537));
-    round!(e, f, g, h, a, b, c, d, k(0x17406110));
-    round!(d, e, f, g, h, a, b, c, k(0x0d8cd6f1));
-    round!(c, d, e, f, g, h, a, b, k(0xcdaa3b6d));
-    round!(b, c, d, e, f, g, h, a, k(0xc0bbbe37));
-    round!(a, b, c, d, e, f, g, h, k(0x83613bda));
-    round!(h, a, b, c, d, e, f, g, k(0xdb48a363));
-    round!(g, h, a, b, c, d, e, f, k(0x0b02e931));
-    round!(f, g, h, a, b, c, d, e, k(0x6fd15ca7));
-    round!(e, f, g, h, a, b, c, d, k(0x521afaca));
-    round!(d, e, f, g, h, a, b, c, k(0x31338431));
-    round!(c, d, e, f, g, h, a, b, k(0x6ed41a95));
-    round!(b, c, d, e, f, g, h, a, k(0x6d437890));
-    round!(a, b, c, d, e, f, g, h, k(0xc39c91f2));
-    round!(h, a, b, c, d, e, f, g, k(0x9eccabbd));
-    round!(g, h, a, b, c, d, e, f, k(0xb5c9a0e6));
-    round!(f, g, h, a, b, c, d, e, k(0x532fb63c));
-    round!(e, f, g, h, a, b, c, d, k(0xd2c741c6));
-    round!(d, e, f, g, h, a, b, c, k(0x07237ea3));
-    round!(c, d, e, f, g, h, a, b, k(0xa4954b68));
-    round!(b, c, d, e, f, g, h, a, k(0x4c191d76));
-
-    // Combine Transform 1 and Transform 2 results
-    #[cfg(debug_assertions)]
-    {
-        let t0_val = _mm256_extract_epi32(t0, 0) as u32;
-        let t1_val = _mm256_extract_epi32(t1, 0) as u32;
-        let a_t2_val = _mm256_extract_epi32(a, 0) as u32;
-        let b_t2_val = _mm256_extract_epi32(b, 0) as u32;
-        println!("DEBUG Before combining: t0=0x{t0_val:08x}, t1=0x{t1_val:08x}, Transform2_a=0x{a_t2_val:08x}, Transform2_b=0x{b_t2_val:08x}");
-    }
-    w0 = add(t0, a);
-    w1 = add(t1, b);
-    w2 = add(t2, c);
-    w3 = add(t3, d);
-    w4 = add(t4, e);
-    w5 = add(t5, f);
-    w6 = add(t6, g);
-    w7 = add(t7, h);
-    #[cfg(debug_assertions)]
-    {
-        let w0_combined = _mm256_extract_epi32(w0, 0) as u32;
-        let w1_combined = _mm256_extract_epi32(w1, 0) as u32;
-        println!("DEBUG After combining Transform 1 and 2: w0=0x{w0_combined:08x}, w1=0x{w1_combined:08x}");
-    }
-
-    // Transform 3: Final SHA256 on the combined state
-    // Reset state to initial hash values
-    a = k(INITIAL_HASH.0[0]);
-    b = k(INITIAL_HASH.0[1]);
-    c = k(INITIAL_HASH.0[2]);
-    d = k(INITIAL_HASH.0[3]);
-    e = k(INITIAL_HASH.0[4]);
-    f = k(INITIAL_HASH.0[5]);
-    g = k(INITIAL_HASH.0[6]);
-    h = k(INITIAL_HASH.0[7]);
-
-    // Rounds 0-15: Use w0-w7 from combined state
-    #[cfg(debug_assertions)]
-    {
-        let w0_t3 = _mm256_extract_epi32(w0, 0) as u32;
-        let w1_t3 = _mm256_extract_epi32(w1, 0) as u32;
-        println!("DEBUG Transform 3 input w0=0x{w0_t3:08x}, w1=0x{w1_t3:08x}");
-    }
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[0]), w0));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_t3_round0 = _mm256_extract_epi32(a, 0) as u32;
-        let h_after_t3_round0 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG Transform 3 after round 0: a=0x{a_after_t3_round0:08x} (old), h=0x{h_after_t3_round0:08x} (new a for next round)");
-    }
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[1]), w1));
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[2]), w2));
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[3]), w3));
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[4]), w4));
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[5]), w5));
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[6]), w6));
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[7]), w7));
-    #[cfg(debug_assertions)]
-    {
-        // After round 7, the new a (for next round) is in h
-        let h_after_t3_round7 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG Transform 3 after round 7: h (new a)=0x{h_after_t3_round7:08x}");
-    }
-    round!(a, b, c, d, e, f, g, h, k(0x5807aa98));
-    round!(h, a, b, c, d, e, f, g, k(0x12835b01));
-    round!(g, h, a, b, c, d, e, f, k(0x243185be));
-    round!(f, g, h, a, b, c, d, e, k(0x550c7dc3));
-    round!(e, f, g, h, a, b, c, d, k(0x72be5d74));
-    round!(d, e, f, g, h, a, b, c, k(0x80deb1fe));
-    round!(c, d, e, f, g, h, a, b, k(0x9bdc06a7));
-    round!(b, c, d, e, f, g, h, a, k(0xc19bf274));
-    #[cfg(debug_assertions)]
-    {
-        // After round 15, round!(b, c, d, e, f, g, h, a, ...) modifies d and h
-        // d is actually e (4th param), h is actually a (8th param)
-        // After rotation, state should be: (a, b, c, d, e, f, g, h) where:
-        // - a is the new h (from round 15)
-        // - b is the old b
-        // - c is the old c
-        // - d is the new d (modified e)
-        // etc.
-        let a_after_15 = _mm256_extract_epi32(a, 0) as u32;
-        let b_after_15 = _mm256_extract_epi32(b, 0) as u32;
-        let c_after_15 = _mm256_extract_epi32(c, 0) as u32;
-        let d_after_15 = _mm256_extract_epi32(d, 0) as u32;
-        let e_after_15 = _mm256_extract_epi32(e, 0) as u32;
-        let f_after_15 = _mm256_extract_epi32(f, 0) as u32;
-        let g_after_15 = _mm256_extract_epi32(g, 0) as u32;
-        let h_after_15 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG Transform 3 after round 15: a=0x{a_after_15:08x}, b=0x{b_after_15:08x}, c=0x{c_after_15:08x}, d=0x{d_after_15:08x}");
-        println!("  e=0x{e_after_15:08x}, f=0x{f_after_15:08x}, g=0x{g_after_15:08x}, h=0x{h_after_15:08x}");
-        println!("  Expected: a=0xf5539ad2, b=0x2c0362a7, c=0xda1fbbd3, d=0x3c3a4027");
-    }
-
-    // Rounds 16-63: Message schedule with special handling (Transform 2)
-    // Message schedule Transform 2: different pattern than Transform 1
-    #[cfg(debug_assertions)]
-    {
-        let a_before_16 = _mm256_extract_epi32(a, 0) as u32;
-        let b_before_16 = _mm256_extract_epi32(b, 0) as u32;
-        let c_before_16 = _mm256_extract_epi32(c, 0) as u32;
-        let d_before_16 = _mm256_extract_epi32(d, 0) as u32;
-        let e_before_16 = _mm256_extract_epi32(e, 0) as u32;
-        let f_before_16 = _mm256_extract_epi32(f, 0) as u32;
-        let g_before_16 = _mm256_extract_epi32(g, 0) as u32;
-        let h_before_16 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG Transform 3 before round 16: a=0x{a_before_16:08x}, b=0x{b_before_16:08x}, c=0x{c_before_16:08x}, d=0x{d_before_16:08x}");
-        println!("  e=0x{e_before_16:08x}, f=0x{f_before_16:08x}, g=0x{g_before_16:08x}, h=0x{h_before_16:08x}");
-        println!(
-            "  Expected after round 15: a=0xf5539ad2, b=0x2c0362a7, c=0xda1fbbd3, d=0x3c3a4027"
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[19]), w3));
+        helpers::inc4(
+            &mut w4,
+            helpers::sigma1_small(w2),
+            w13,
+            helpers::sigma0_small(w5),
         );
-        let w0_before_t3_round16 = _mm256_extract_epi32(w0, 0) as u32;
-        let w1_before_t3_round16 = _mm256_extract_epi32(w1, 0) as u32;
-        println!("DEBUG Transform 3 round 16 before inc: w0=0x{w0_before_t3_round16:08x}, w1=0x{w1_before_t3_round16:08x}");
-    }
-    // Save old values before round 16 - these will be needed in round 17
-    // Round 16 modifies d and h, so we save c and d (which become $d and $e in round 17)
-    let _c_old_16 = c;
-    let _d_old_16 = d;
-    #[cfg(debug_assertions)]
-    {
-        let d_before_16 = _mm256_extract_epi32(d, 0) as u32;
-        let w0_before = _mm256_extract_epi32(w0, 0) as u32;
-        let w1_before = _mm256_extract_epi32(w1, 0) as u32;
-        println!("DEBUG Transform 3 round 16: d before = 0x{d_before_16:08x} (expected 0x3c3a4027), w0=0x{w0_before:08x}, w1=0x{w1_before:08x}");
-    }
-    // Rounds 16-31: Match message schedule Transform 3 exactly
-    #[cfg(debug_assertions)]
-    {
-        let w0_before = _mm256_extract_epi32(w0, 0) as u32;
-        let w1_before = _mm256_extract_epi32(w1, 0) as u32;
-        println!("DEBUG T3 R16 before: w0=0x{w0_before:08x} w1=0x{w1_before:08x}");
-    }
-    helpers::inc(&mut w0, helpers::sigma0_small(w1));
-    #[cfg(debug_assertions)]
-    {
-        let w0_after = _mm256_extract_epi32(w0, 0) as u32;
-        println!("DEBUG T3 R16 after inc: w0=0x{w0_after:08x}");
-    }
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[16]), w0));
-    #[cfg(debug_assertions)]
-    {
-        let a_after = _mm256_extract_epi32(a, 0) as u32;
-        println!("DEBUG T3 R16 after round: a=0x{a_after:08x}");
-    }
-    helpers::inc3(&mut w1, k(0xa00000), helpers::sigma0_small(w2));
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[17]), w1));
-    #[cfg(debug_assertions)]
-    {
-        let g_after = _mm256_extract_epi32(g, 0) as u32;
-        println!("DEBUG T3 R17 after: g=0x{g_after:08x}");
-    }
-    helpers::inc3(
-        &mut w2,
-        helpers::sigma1_small(w0),
-        helpers::sigma0_small(w3),
-    );
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[18]), w2));
-    helpers::inc3(
-        &mut w3,
-        helpers::sigma1_small(w1),
-        helpers::sigma0_small(w4),
-    );
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[19]), w3));
-    helpers::inc3(
-        &mut w4,
-        helpers::sigma1_small(w2),
-        helpers::sigma0_small(w5),
-    );
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[20]), w4));
-    helpers::inc3(
-        &mut w5,
-        helpers::sigma1_small(w3),
-        helpers::sigma0_small(w6),
-    );
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[21]), w5));
-    helpers::inc4(
-        &mut w6,
-        helpers::sigma1_small(w4),
-        k(0x100),
-        helpers::sigma0_small(w7),
-    );
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[22]), w6));
-    helpers::inc4(&mut w7, helpers::sigma1_small(w5), w0, k(0x11002000));
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[23]), w7));
-    w8 = helpers::add3(k(0x80000000), helpers::sigma1_small(w6), w1);
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[24]), w8));
-    w9 = helpers::add(helpers::sigma1_small(w7), w2);
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[25]), w9));
-    w10 = helpers::add(helpers::sigma1_small(w8), w3);
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[26]), w10));
-    w11 = helpers::add(helpers::sigma1_small(w9), w4);
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[27]), w11));
-    w12 = helpers::add(helpers::sigma1_small(w10), w5);
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[28]), w12));
-    w13 = helpers::add(helpers::sigma1_small(w11), w6);
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[29]), w13));
-    w14 = helpers::add3(helpers::sigma1_small(w12), w7, k(0x400022));
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[30]), w14));
-    w15 = helpers::add4(
-        k(0x100),
-        helpers::sigma1_small(w13),
-        w8,
-        helpers::sigma0_small(w0),
-    );
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[31]), w15));
-
-    // Continue with standard message schedule for rounds 32-63 (matching Transform 3 pattern)
-    #[cfg(debug_assertions)]
-    {
-        let a_before_32 = _mm256_extract_epi32(a, 0) as u32;
-        println!("DEBUG T3 R32 before: a=0x{a_before_32:08x}");
-    }
-    helpers::inc4(
-        &mut w0,
-        helpers::sigma1_small(w14),
-        w9,
-        helpers::sigma0_small(w1),
-    );
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[32]), w0));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_32 = _mm256_extract_epi32(a, 0) as u32;
-        println!("DEBUG T3 R32 after: a=0x{a_after_32:08x}");
-    }
-    helpers::inc4(
-        &mut w1,
-        helpers::sigma1_small(w15),
-        w10,
-        helpers::sigma0_small(w2),
-    );
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[33]), w1));
-    helpers::inc4(
-        &mut w2,
-        helpers::sigma1_small(w0),
-        w11,
-        helpers::sigma0_small(w3),
-    );
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[34]), w2));
-    helpers::inc4(
-        &mut w3,
-        helpers::sigma1_small(w1),
-        w12,
-        helpers::sigma0_small(w4),
-    );
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[35]), w3));
-    helpers::inc4(
-        &mut w4,
-        helpers::sigma1_small(w2),
-        w13,
-        helpers::sigma0_small(w5),
-    );
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[36]), w4));
-    helpers::inc4(
-        &mut w5,
-        helpers::sigma1_small(w3),
-        w14,
-        helpers::sigma0_small(w6),
-    );
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[37]), w5));
-    helpers::inc4(
-        &mut w6,
-        helpers::sigma1_small(w4),
-        w15,
-        helpers::sigma0_small(w7),
-    );
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[38]), w6));
-    helpers::inc4(
-        &mut w7,
-        helpers::sigma1_small(w5),
-        w0,
-        helpers::sigma0_small(w8),
-    );
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[39]), w7));
-    helpers::inc4(
-        &mut w8,
-        helpers::sigma1_small(w6),
-        w1,
-        helpers::sigma0_small(w9),
-    );
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[40]), w8));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_40 = _mm256_extract_epi32(a, 0) as u32;
-        let h_after_40 = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG T3 R40 after: a=0x{a_after_40:08x}, h=0x{h_after_40:08x}");
-    }
-    helpers::inc4(
-        &mut w9,
-        helpers::sigma1_small(w7),
-        w2,
-        helpers::sigma0_small(w10),
-    );
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[41]), w9));
-    helpers::inc4(
-        &mut w10,
-        helpers::sigma1_small(w8),
-        w3,
-        helpers::sigma0_small(w11),
-    );
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[42]), w10));
-    helpers::inc4(
-        &mut w11,
-        helpers::sigma1_small(w9),
-        w4,
-        helpers::sigma0_small(w12),
-    );
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[43]), w11));
-    helpers::inc4(
-        &mut w12,
-        helpers::sigma1_small(w10),
-        w5,
-        helpers::sigma0_small(w13),
-    );
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[44]), w12));
-    helpers::inc4(
-        &mut w13,
-        helpers::sigma1_small(w11),
-        w6,
-        helpers::sigma0_small(w14),
-    );
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[45]), w13));
-    helpers::inc4(
-        &mut w14,
-        helpers::sigma1_small(w12),
-        w7,
-        helpers::sigma0_small(w15),
-    );
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[46]), w14));
-    helpers::inc4(
-        &mut w15,
-        helpers::sigma1_small(w13),
-        w8,
-        helpers::sigma0_small(w0),
-    );
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[47]), w15));
-    helpers::inc4(
-        &mut w0,
-        helpers::sigma1_small(w14),
-        w9,
-        helpers::sigma0_small(w1),
-    );
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[48]), w0));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_48 = _mm256_extract_epi32(a, 0) as u32;
-        println!("DEBUG T3 R48 after: a=0x{a_after_48:08x}");
-    }
-    helpers::inc4(
-        &mut w1,
-        helpers::sigma1_small(w15),
-        w10,
-        helpers::sigma0_small(w2),
-    );
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[49]), w1));
-    helpers::inc4(
-        &mut w2,
-        helpers::sigma1_small(w0),
-        w11,
-        helpers::sigma0_small(w3),
-    );
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[50]), w2));
-    helpers::inc4(
-        &mut w3,
-        helpers::sigma1_small(w1),
-        w12,
-        helpers::sigma0_small(w4),
-    );
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[51]), w3));
-    helpers::inc4(
-        &mut w4,
-        helpers::sigma1_small(w2),
-        w13,
-        helpers::sigma0_small(w5),
-    );
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[52]), w4));
-    helpers::inc4(
-        &mut w5,
-        helpers::sigma1_small(w3),
-        w14,
-        helpers::sigma0_small(w6),
-    );
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[53]), w5));
-    helpers::inc4(
-        &mut w6,
-        helpers::sigma1_small(w4),
-        w15,
-        helpers::sigma0_small(w7),
-    );
-    round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[54]), w6));
-    helpers::inc4(
-        &mut w7,
-        helpers::sigma1_small(w5),
-        w0,
-        helpers::sigma0_small(w8),
-    );
-    round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[55]), w7));
-    helpers::inc4(
-        &mut w8,
-        helpers::sigma1_small(w6),
-        w1,
-        helpers::sigma0_small(w9),
-    );
-    round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[56]), w8));
-    #[cfg(debug_assertions)]
-    {
-        let a_after_56 = _mm256_extract_epi32(a, 0) as u32;
-        println!("DEBUG T3 R56 after: a=0x{a_after_56:08x}");
-    }
-    helpers::inc4(
-        &mut w9,
-        helpers::sigma1_small(w7),
-        w2,
-        helpers::sigma0_small(w10),
-    );
-    round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[57]), w9));
-    helpers::inc4(
-        &mut w10,
-        helpers::sigma1_small(w8),
-        w3,
-        helpers::sigma0_small(w11),
-    );
-    round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[58]), w10));
-    helpers::inc4(
-        &mut w11,
-        helpers::sigma1_small(w9),
-        w4,
-        helpers::sigma0_small(w12),
-    );
-    round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[59]), w11));
-    helpers::inc4(
-        &mut w12,
-        helpers::sigma1_small(w10),
-        w5,
-        helpers::sigma0_small(w13),
-    );
-    round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[60]), w12));
-    helpers::inc4(
-        &mut w13,
-        helpers::sigma1_small(w11),
-        w6,
-        helpers::sigma0_small(w14),
-    );
-    round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[61]), w13));
-    // Message schedule Transform 3 rounds 62-63: Use Add with 5 args, w14/w15 NOT modified (different from Transform 1)
-    round!(
-        c,
-        d,
-        e,
-        f,
-        g,
-        h,
-        a,
-        b,
-        helpers::add5(
-            k(K_ARRAY.0[62]),
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[20]), w4));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_round20 = _mm256_extract_epi32(a, 0) as u32;
+            println!("DEBUG After round 20: a=0x{a_after_round20:08x}");
+        }
+        helpers::inc4(
+            &mut w5,
+            helpers::sigma1_small(w3),
             w14,
+            helpers::sigma0_small(w6),
+        );
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[21]), w5));
+        helpers::inc4(
+            &mut w6,
+            helpers::sigma1_small(w4),
+            w15,
+            helpers::sigma0_small(w7),
+        );
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[22]), w6));
+        helpers::inc4(
+            &mut w7,
+            helpers::sigma1_small(w5),
+            w0,
+            helpers::sigma0_small(w8),
+        );
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[23]), w7));
+        helpers::inc4(
+            &mut w8,
+            helpers::sigma1_small(w6),
+            w1,
+            helpers::sigma0_small(w9),
+        );
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[24]), w8));
+        helpers::inc4(
+            &mut w9,
+            helpers::sigma1_small(w7),
+            w2,
+            helpers::sigma0_small(w10),
+        );
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[25]), w9));
+        helpers::inc4(
+            &mut w10,
+            helpers::sigma1_small(w8),
+            w3,
+            helpers::sigma0_small(w11),
+        );
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[26]), w10));
+        helpers::inc4(
+            &mut w11,
+            helpers::sigma1_small(w9),
+            w4,
+            helpers::sigma0_small(w12),
+        );
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[27]), w11));
+        helpers::inc4(
+            &mut w12,
+            helpers::sigma1_small(w10),
+            w5,
+            helpers::sigma0_small(w13),
+        );
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[28]), w12));
+        helpers::inc4(
+            &mut w13,
+            helpers::sigma1_small(w11),
+            w6,
+            helpers::sigma0_small(w14),
+        );
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[29]), w13));
+        helpers::inc4(
+            &mut w14,
             helpers::sigma1_small(w12),
             w7,
-            helpers::sigma0_small(w15)
-        )
-    );
-    round!(
-        b,
-        c,
-        d,
-        e,
-        f,
-        g,
-        h,
-        a,
-        helpers::add5(
-            k(K_ARRAY.0[63]),
-            w15,
+            helpers::sigma0_small(w15),
+        );
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[30]), w14));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_round30 = _mm256_extract_epi32(a, 0) as u32;
+            println!("DEBUG After round 30: a=0x{a_after_round30:08x}");
+        }
+        // Message schedule Transform 1 round 31: Inc(w15, sigma1(w13), w8, sigma0(w0)) - no k(0x100) in Transform 1
+        #[cfg(debug_assertions)]
+        {
+            let a_before_round31 = _mm256_extract_epi32(a, 0) as u32;
+            let b_before_round31 = _mm256_extract_epi32(b, 0) as u32;
+            let c_before_round31 = _mm256_extract_epi32(c, 0) as u32;
+            let d_before_round31 = _mm256_extract_epi32(d, 0) as u32;
+            let e_before_round31 = _mm256_extract_epi32(e, 0) as u32;
+            let f_before_round31 = _mm256_extract_epi32(f, 0) as u32;
+            let g_before_round31 = _mm256_extract_epi32(g, 0) as u32;
+            let h_before_round31 = _mm256_extract_epi32(h, 0) as u32;
+            println!(
+                "DEBUG Before round 31: a=0x{a_before_round31:08x} b=0x{b_before_round31:08x} c=0x{c_before_round31:08x} d=0x{d_before_round31:08x} e=0x{e_before_round31:08x} f=0x{f_before_round31:08x} g=0x{g_before_round31:08x} h=0x{h_before_round31:08x}"
+            );
+            let w15_before = _mm256_extract_epi32(w15, 0) as u32;
+            let w13_val = _mm256_extract_epi32(w13, 0) as u32;
+            let w8_val = _mm256_extract_epi32(w8, 0) as u32;
+            let w0_val = _mm256_extract_epi32(w0, 0) as u32;
+            let w11_val = _mm256_extract_epi32(w11, 0) as u32;
+            let w6_val = _mm256_extract_epi32(w6, 0) as u32;
+            println!(
+                "DEBUG w15 before inc4: 0x{w15_before:08x}, w13: 0x{w13_val:08x}, w8: 0x{w8_val:08x}, w0: 0x{w0_val:08x}"
+            );
+            println!("DEBUG w11: 0x{w11_val:08x}, w6: 0x{w6_val:08x}");
+            let sigma1_w13 = _mm256_extract_epi32(helpers::sigma1_small(w13), 0) as u32;
+            let sigma0_w0 = _mm256_extract_epi32(helpers::sigma0_small(w0), 0) as u32;
+            println!(
+                "DEBUG sigma1_small(w13): 0x{sigma1_w13:08x}, sigma0_small(w0): 0x{sigma0_w0:08x}"
+            );
+        }
+        helpers::inc4(
+            &mut w15,
             helpers::sigma1_small(w13),
             w8,
-            helpers::sigma0_small(w0)
-        )
-    );
+            helpers::sigma0_small(w0),
+        );
+        #[cfg(debug_assertions)]
+        {
+            let w15_after = _mm256_extract_epi32(w15, 0) as u32;
+            println!("DEBUG w15 after inc4: 0x{w15_after:08x}");
+            let k31 = K_ARRAY.0[31];
+            println!("DEBUG K_ARRAY.0[31] = 0x{k31:08x}");
+        }
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[31]), w15));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_round31 = _mm256_extract_epi32(a, 0) as u32;
+            let b_after_round31 = _mm256_extract_epi32(b, 0) as u32;
+            let c_after_round31 = _mm256_extract_epi32(c, 0) as u32;
+            let d_after_round31 = _mm256_extract_epi32(d, 0) as u32;
+            let e_after_round31 = _mm256_extract_epi32(e, 0) as u32;
+            let f_after_round31 = _mm256_extract_epi32(f, 0) as u32;
+            let g_after_round31 = _mm256_extract_epi32(g, 0) as u32;
+            let h_after_round31 = _mm256_extract_epi32(h, 0) as u32;
+            println!(
+                "DEBUG After round 31: a=0x{a_after_round31:08x} b=0x{b_after_round31:08x} c=0x{c_after_round31:08x} d=0x{d_after_round31:08x} e=0x{e_after_round31:08x} f=0x{f_after_round31:08x} g=0x{g_after_round31:08x} h=0x{h_after_round31:08x}"
+            );
+        }
+        helpers::inc4(
+            &mut w0,
+            helpers::sigma1_small(w14),
+            w9,
+            helpers::sigma0_small(w1),
+        );
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[32]), w0));
+        helpers::inc4(
+            &mut w1,
+            helpers::sigma1_small(w15),
+            w10,
+            helpers::sigma0_small(w2),
+        );
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[33]), w1));
+        helpers::inc4(
+            &mut w2,
+            helpers::sigma1_small(w0),
+            w11,
+            helpers::sigma0_small(w3),
+        );
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[34]), w2));
+        helpers::inc4(
+            &mut w3,
+            helpers::sigma1_small(w1),
+            w12,
+            helpers::sigma0_small(w4),
+        );
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[35]), w3));
+        helpers::inc4(
+            &mut w4,
+            helpers::sigma1_small(w2),
+            w13,
+            helpers::sigma0_small(w5),
+        );
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[36]), w4));
+        helpers::inc4(
+            &mut w5,
+            helpers::sigma1_small(w3),
+            w14,
+            helpers::sigma0_small(w6),
+        );
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[37]), w5));
+        helpers::inc4(
+            &mut w6,
+            helpers::sigma1_small(w4),
+            w15,
+            helpers::sigma0_small(w7),
+        );
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[38]), w6));
+        helpers::inc4(
+            &mut w7,
+            helpers::sigma1_small(w5),
+            w0,
+            helpers::sigma0_small(w8),
+        );
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[39]), w7));
+        helpers::inc4(
+            &mut w8,
+            helpers::sigma1_small(w6),
+            w1,
+            helpers::sigma0_small(w9),
+        );
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[40]), w8));
+        helpers::inc4(
+            &mut w9,
+            helpers::sigma1_small(w7),
+            w2,
+            helpers::sigma0_small(w10),
+        );
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[41]), w9));
+        helpers::inc4(
+            &mut w10,
+            helpers::sigma1_small(w8),
+            w3,
+            helpers::sigma0_small(w11),
+        );
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[42]), w10));
+        helpers::inc4(
+            &mut w11,
+            helpers::sigma1_small(w9),
+            w4,
+            helpers::sigma0_small(w12),
+        );
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[43]), w11));
+        helpers::inc4(
+            &mut w12,
+            helpers::sigma1_small(w10),
+            w5,
+            helpers::sigma0_small(w13),
+        );
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[44]), w12));
+        helpers::inc4(
+            &mut w13,
+            helpers::sigma1_small(w11),
+            w6,
+            helpers::sigma0_small(w14),
+        );
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[45]), w13));
+        helpers::inc4(
+            &mut w14,
+            helpers::sigma1_small(w12),
+            w7,
+            helpers::sigma0_small(w15),
+        );
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[46]), w14));
+        helpers::inc4(
+            &mut w15,
+            helpers::sigma1_small(w13),
+            w8,
+            helpers::sigma0_small(w0),
+        );
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[47]), w15));
+        helpers::inc4(
+            &mut w0,
+            helpers::sigma1_small(w14),
+            w9,
+            helpers::sigma0_small(w1),
+        );
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[48]), w0));
+        helpers::inc4(
+            &mut w1,
+            helpers::sigma1_small(w15),
+            w10,
+            helpers::sigma0_small(w2),
+        );
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[49]), w1));
+        helpers::inc4(
+            &mut w2,
+            helpers::sigma1_small(w0),
+            w11,
+            helpers::sigma0_small(w3),
+        );
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[50]), w2));
+        helpers::inc4(
+            &mut w3,
+            helpers::sigma1_small(w1),
+            w12,
+            helpers::sigma0_small(w4),
+        );
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[51]), w3));
+        helpers::inc4(
+            &mut w4,
+            helpers::sigma1_small(w2),
+            w13,
+            helpers::sigma0_small(w5),
+        );
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[52]), w4));
+        helpers::inc4(
+            &mut w5,
+            helpers::sigma1_small(w3),
+            w14,
+            helpers::sigma0_small(w6),
+        );
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[53]), w5));
+        helpers::inc4(
+            &mut w6,
+            helpers::sigma1_small(w4),
+            w15,
+            helpers::sigma0_small(w7),
+        );
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[54]), w6));
+        helpers::inc4(
+            &mut w7,
+            helpers::sigma1_small(w5),
+            w0,
+            helpers::sigma0_small(w8),
+        );
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[55]), w7));
+        helpers::inc4(
+            &mut w8,
+            helpers::sigma1_small(w6),
+            w1,
+            helpers::sigma0_small(w9),
+        );
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[56]), w8));
+        helpers::inc4(
+            &mut w9,
+            helpers::sigma1_small(w7),
+            w2,
+            helpers::sigma0_small(w10),
+        );
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[57]), w9));
+        helpers::inc4(
+            &mut w10,
+            helpers::sigma1_small(w8),
+            w3,
+            helpers::sigma0_small(w11),
+        );
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[58]), w10));
+        helpers::inc4(
+            &mut w11,
+            helpers::sigma1_small(w9),
+            w4,
+            helpers::sigma0_small(w12),
+        );
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[59]), w11));
+        helpers::inc4(
+            &mut w12,
+            helpers::sigma1_small(w10),
+            w5,
+            helpers::sigma0_small(w13),
+        );
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[60]), w12));
+        helpers::inc4(
+            &mut w13,
+            helpers::sigma1_small(w11),
+            w6,
+            helpers::sigma0_small(w14),
+        );
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[61]), w13));
+        helpers::inc4(
+            &mut w14,
+            helpers::sigma1_small(w12),
+            w7,
+            helpers::sigma0_small(w15),
+        );
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[62]), w14));
+        helpers::inc4(
+            &mut w15,
+            helpers::sigma1_small(w13),
+            w8,
+            helpers::sigma0_small(w0),
+        );
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[63]), w15));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_round63 = _mm256_extract_epi32(a, 0) as u32;
+            let b_after_round63 = _mm256_extract_epi32(b, 0) as u32;
+            let c_after_round63 = _mm256_extract_epi32(c, 0) as u32;
+            let d_after_round63 = _mm256_extract_epi32(d, 0) as u32;
+            let e_after_round63 = _mm256_extract_epi32(e, 0) as u32;
+            let f_after_round63 = _mm256_extract_epi32(f, 0) as u32;
+            let g_after_round63 = _mm256_extract_epi32(g, 0) as u32;
+            let h_after_round63 = _mm256_extract_epi32(h, 0) as u32;
+            println!(
+                "DEBUG After round 63: a=0x{a_after_round63:08x} b=0x{b_after_round63:08x} c=0x{c_after_round63:08x} d=0x{d_after_round63:08x} e=0x{e_after_round63:08x} f=0x{f_after_round63:08x} g=0x{g_after_round63:08x} h=0x{h_after_round63:08x}"
+            );
+            // Expected state after 64 rounds for zero input (before adding initial hash)
+            // First SHA256 of 64 zero bytes should produce: 0x42fda5f5 (little-endian of first word)
+            // So a should be: 0x42fda5f5 - 0x6a09e667 = 0xd8f3bf8e
+            println!("DEBUG Expected a after round 63: 0xd8f3bf8e (0x42fda5f5 - 0x6a09e667)");
+            println!(
+                "DEBUG Difference: 0x{:08x}",
+                a_after_round63.wrapping_sub(0xd8f3bf8e)
+            );
+        }
 
-    // Add initial hash values and write output
-    // Add initial hash values before writing output
-    #[cfg(debug_assertions)]
-    {
-        // After round 63: round!(b, c, d, e, f, g, h, a, ...)
-        // $d = e (modified)
-        // $h = a (modified)
-        // After rotation, final state is: (a, b, c, d, e, f, g, h)
-        // where a was modified (was $h), e was modified (was $d)
-        let a_before_final = _mm256_extract_epi32(a, 0) as u32;
-        let b_before_final = _mm256_extract_epi32(b, 0) as u32;
-        let c_before_final = _mm256_extract_epi32(c, 0) as u32;
-        let d_before_final = _mm256_extract_epi32(d, 0) as u32;
-        let e_before_final = _mm256_extract_epi32(e, 0) as u32;
-        let f_before_final = _mm256_extract_epi32(f, 0) as u32;
-        let g_before_final = _mm256_extract_epi32(g, 0) as u32;
-        let h_before_final = _mm256_extract_epi32(h, 0) as u32;
-        println!("DEBUG Transform 3 after round 63: a=0x{a_before_final:08x}, b=0x{b_before_final:08x}, c=0x{c_before_final:08x}, d=0x{d_before_final:08x}");
-        println!("  e=0x{e_before_final:08x}, f=0x{f_before_final:08x}, g=0x{g_before_final:08x}, h=0x{h_before_final:08x}");
-        println!("DEBUG Transform 3 before adding initial hash: a=0x{a_before_final:08x} (expected 0x78ec3678)");
-    }
-    // Write8(out, 0, Add(a, K(0x6a09e667ul)));
-    let a_final = add(a, k(INITIAL_HASH.0[0]));
-    #[cfg(debug_assertions)]
-    {
-        let a_final_val = _mm256_extract_epi32(a_final, 0) as u32;
-        println!("DEBUG Transform 3 final a (after adding initial): 0x{a_final_val:08x}");
-    }
-    write8(out, 0, a_final);
-    write8(out, 4, add(b, k(INITIAL_HASH.0[1])));
-    write8(out, 8, add(c, k(INITIAL_HASH.0[2])));
-    write8(out, 12, add(d, k(INITIAL_HASH.0[3])));
-    write8(out, 16, add(e, k(INITIAL_HASH.0[4])));
-    write8(out, 20, add(f, k(INITIAL_HASH.0[5])));
-    write8(out, 24, add(g, k(INITIAL_HASH.0[6])));
-    write8(out, 28, add(h, k(INITIAL_HASH.0[7])));
-    #[cfg(debug_assertions)]
-    {
-        // Check what we wrote
-        println!("DEBUG Transform 3 output first 8 bytes: {:?}", &out[0..8]);
+        // Add initial hash values (Transform 1 complete)
+        #[cfg(debug_assertions)]
+        {
+            let a_before = _mm256_extract_epi32(a, 0) as u32;
+            let h_before = _mm256_extract_epi32(h, 0) as u32;
+            println!(
+                "DEBUG Transform 1 before adding initial hash: a=0x{a_before:08x}, h=0x{h_before:08x}"
+            );
+            println!("Expected SHA256(64 zeros) first word: 0xf5a5fd42");
+        }
+        a = add(a, k(INITIAL_HASH.0[0]));
+        b = add(b, k(INITIAL_HASH.0[1]));
+        c = add(c, k(INITIAL_HASH.0[2]));
+        d = add(d, k(INITIAL_HASH.0[3]));
+        e = add(e, k(INITIAL_HASH.0[4]));
+        f = add(f, k(INITIAL_HASH.0[5]));
+        g = add(g, k(INITIAL_HASH.0[6]));
+        h = add(h, k(INITIAL_HASH.0[7]));
+        #[cfg(debug_assertions)]
+        {
+            let a_after = _mm256_extract_epi32(a, 0) as u32;
+            let h_after = _mm256_extract_epi32(h, 0) as u32;
+            println!(
+                "DEBUG Transform 1 after adding initial hash: a=0x{a_after:08x}, h=0x{h_after:08x}"
+            );
+            println!("Expected: a=0xf5a5fd42 (from SHA256(64 zeros))");
+        }
+
+        // Save state for Transform 3
+        #[cfg(debug_assertions)]
+        {
+            let a_before_t2 = _mm256_extract_epi32(a, 0) as u32;
+            let b_before_t2 = _mm256_extract_epi32(b, 0) as u32;
+            println!(
+                "DEBUG Transform 2 starting state: a=0x{a_before_t2:08x}, b=0x{b_before_t2:08x}"
+            );
+        }
+        let t0 = a;
+        let t1 = b;
+        let t2 = c;
+        let t3 = d;
+        let t4 = e;
+        let t5 = f;
+        let t6 = g;
+        let t7 = h;
+
+        // Transform 2: Process padding block (0x80000000, zeros, length 0x200)
+        // State is NOT reset - continues from Transform 1
+
+        // Transform 2 uses different K constants
+        round!(a, b, c, d, e, f, g, h, k(0xc28a2f98));
+        round!(h, a, b, c, d, e, f, g, k(0x71374491));
+        round!(g, h, a, b, c, d, e, f, k(0xb5c0fbcf));
+        round!(f, g, h, a, b, c, d, e, k(0xe9b5dba5));
+        round!(e, f, g, h, a, b, c, d, k(0x3956c25b));
+        round!(d, e, f, g, h, a, b, c, k(0x59f111f1));
+        round!(c, d, e, f, g, h, a, b, k(0x923f82a4));
+        round!(b, c, d, e, f, g, h, a, k(0xab1c5ed5));
+        round!(a, b, c, d, e, f, g, h, k(0xd807aa98));
+        round!(h, a, b, c, d, e, f, g, k(0x12835b01));
+        round!(g, h, a, b, c, d, e, f, k(0x243185be));
+        round!(f, g, h, a, b, c, d, e, k(0x550c7dc3));
+        round!(e, f, g, h, a, b, c, d, k(0x72be5d74));
+        round!(d, e, f, g, h, a, b, c, k(0x80deb1fe));
+        round!(c, d, e, f, g, h, a, b, k(0x9bdc06a7));
+        round!(b, c, d, e, f, g, h, a, k(0xc19bf374));
+        round!(a, b, c, d, e, f, g, h, k(0x649b69c1));
+        round!(h, a, b, c, d, e, f, g, k(0xf0fe4786));
+        round!(g, h, a, b, c, d, e, f, k(0x0fe1edc6));
+        round!(f, g, h, a, b, c, d, e, k(0x240cf254));
+        round!(e, f, g, h, a, b, c, d, k(0x4fe9346f));
+        round!(d, e, f, g, h, a, b, c, k(0x6cc984be));
+        round!(c, d, e, f, g, h, a, b, k(0x61b9411e));
+        round!(b, c, d, e, f, g, h, a, k(0x16f988fa));
+        round!(a, b, c, d, e, f, g, h, k(0xf2c65152));
+        round!(h, a, b, c, d, e, f, g, k(0xa88e5a6d));
+        round!(g, h, a, b, c, d, e, f, k(0xb019fc65));
+        round!(f, g, h, a, b, c, d, e, k(0xb9d99ec7));
+        round!(e, f, g, h, a, b, c, d, k(0x9a1231c3));
+        round!(d, e, f, g, h, a, b, c, k(0xe70eeaa0));
+        round!(c, d, e, f, g, h, a, b, k(0xfdb1232b));
+        round!(b, c, d, e, f, g, h, a, k(0xc7353eb0));
+        round!(a, b, c, d, e, f, g, h, k(0x3069bad5));
+        round!(h, a, b, c, d, e, f, g, k(0xcb976d5f));
+        round!(g, h, a, b, c, d, e, f, k(0x5a0f118f));
+        round!(f, g, h, a, b, c, d, e, k(0xdc1eeefd));
+        round!(e, f, g, h, a, b, c, d, k(0x0a35b689));
+        round!(d, e, f, g, h, a, b, c, k(0xde0b7a04));
+        round!(c, d, e, f, g, h, a, b, k(0x58f4ca9d));
+        round!(b, c, d, e, f, g, h, a, k(0xe15d5b16));
+        round!(a, b, c, d, e, f, g, h, k(0x007f3e86));
+        round!(h, a, b, c, d, e, f, g, k(0x37088980));
+        round!(g, h, a, b, c, d, e, f, k(0xa507ea32));
+        round!(f, g, h, a, b, c, d, e, k(0x6fab9537));
+        round!(e, f, g, h, a, b, c, d, k(0x17406110));
+        round!(d, e, f, g, h, a, b, c, k(0x0d8cd6f1));
+        round!(c, d, e, f, g, h, a, b, k(0xcdaa3b6d));
+        round!(b, c, d, e, f, g, h, a, k(0xc0bbbe37));
+        round!(a, b, c, d, e, f, g, h, k(0x83613bda));
+        round!(h, a, b, c, d, e, f, g, k(0xdb48a363));
+        round!(g, h, a, b, c, d, e, f, k(0x0b02e931));
+        round!(f, g, h, a, b, c, d, e, k(0x6fd15ca7));
+        round!(e, f, g, h, a, b, c, d, k(0x521afaca));
+        round!(d, e, f, g, h, a, b, c, k(0x31338431));
+        round!(c, d, e, f, g, h, a, b, k(0x6ed41a95));
+        round!(b, c, d, e, f, g, h, a, k(0x6d437890));
+        round!(a, b, c, d, e, f, g, h, k(0xc39c91f2));
+        round!(h, a, b, c, d, e, f, g, k(0x9eccabbd));
+        round!(g, h, a, b, c, d, e, f, k(0xb5c9a0e6));
+        round!(f, g, h, a, b, c, d, e, k(0x532fb63c));
+        round!(e, f, g, h, a, b, c, d, k(0xd2c741c6));
+        round!(d, e, f, g, h, a, b, c, k(0x07237ea3));
+        round!(c, d, e, f, g, h, a, b, k(0xa4954b68));
+        round!(b, c, d, e, f, g, h, a, k(0x4c191d76));
+
+        // Combine Transform 1 and Transform 2 results
+        #[cfg(debug_assertions)]
+        {
+            let t0_val = _mm256_extract_epi32(t0, 0) as u32;
+            let t1_val = _mm256_extract_epi32(t1, 0) as u32;
+            let a_t2_val = _mm256_extract_epi32(a, 0) as u32;
+            let b_t2_val = _mm256_extract_epi32(b, 0) as u32;
+            println!(
+                "DEBUG Before combining: t0=0x{t0_val:08x}, t1=0x{t1_val:08x}, Transform2_a=0x{a_t2_val:08x}, Transform2_b=0x{b_t2_val:08x}"
+            );
+        }
+        w0 = add(t0, a);
+        w1 = add(t1, b);
+        w2 = add(t2, c);
+        w3 = add(t3, d);
+        w4 = add(t4, e);
+        w5 = add(t5, f);
+        w6 = add(t6, g);
+        w7 = add(t7, h);
+        #[cfg(debug_assertions)]
+        {
+            let w0_combined = _mm256_extract_epi32(w0, 0) as u32;
+            let w1_combined = _mm256_extract_epi32(w1, 0) as u32;
+            println!(
+                "DEBUG After combining Transform 1 and 2: w0=0x{w0_combined:08x}, w1=0x{w1_combined:08x}"
+            );
+        }
+
+        // Transform 3: Final SHA256 on the combined state
+        // Reset state to initial hash values
+        a = k(INITIAL_HASH.0[0]);
+        b = k(INITIAL_HASH.0[1]);
+        c = k(INITIAL_HASH.0[2]);
+        d = k(INITIAL_HASH.0[3]);
+        e = k(INITIAL_HASH.0[4]);
+        f = k(INITIAL_HASH.0[5]);
+        g = k(INITIAL_HASH.0[6]);
+        h = k(INITIAL_HASH.0[7]);
+
+        // Rounds 0-15: Use w0-w7 from combined state
+        #[cfg(debug_assertions)]
+        {
+            let w0_t3 = _mm256_extract_epi32(w0, 0) as u32;
+            let w1_t3 = _mm256_extract_epi32(w1, 0) as u32;
+            println!("DEBUG Transform 3 input w0=0x{w0_t3:08x}, w1=0x{w1_t3:08x}");
+        }
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[0]), w0));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_t3_round0 = _mm256_extract_epi32(a, 0) as u32;
+            let h_after_t3_round0 = _mm256_extract_epi32(h, 0) as u32;
+            println!(
+                "DEBUG Transform 3 after round 0: a=0x{a_after_t3_round0:08x} (old), h=0x{h_after_t3_round0:08x} (new a for next round)"
+            );
+        }
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[1]), w1));
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[2]), w2));
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[3]), w3));
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[4]), w4));
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[5]), w5));
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[6]), w6));
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[7]), w7));
+        #[cfg(debug_assertions)]
+        {
+            // After round 7, the new a (for next round) is in h
+            let h_after_t3_round7 = _mm256_extract_epi32(h, 0) as u32;
+            println!("DEBUG Transform 3 after round 7: h (new a)=0x{h_after_t3_round7:08x}");
+        }
+        round!(a, b, c, d, e, f, g, h, k(0x5807aa98));
+        round!(h, a, b, c, d, e, f, g, k(0x12835b01));
+        round!(g, h, a, b, c, d, e, f, k(0x243185be));
+        round!(f, g, h, a, b, c, d, e, k(0x550c7dc3));
+        round!(e, f, g, h, a, b, c, d, k(0x72be5d74));
+        round!(d, e, f, g, h, a, b, c, k(0x80deb1fe));
+        round!(c, d, e, f, g, h, a, b, k(0x9bdc06a7));
+        round!(b, c, d, e, f, g, h, a, k(0xc19bf274));
+        #[cfg(debug_assertions)]
+        {
+            // After round 15, round!(b, c, d, e, f, g, h, a, ...) modifies d and h
+            // d is actually e (4th param), h is actually a (8th param)
+            // After rotation, state should be: (a, b, c, d, e, f, g, h) where:
+            // - a is the new h (from round 15)
+            // - b is the old b
+            // - c is the old c
+            // - d is the new d (modified e)
+            // etc.
+            let a_after_15 = _mm256_extract_epi32(a, 0) as u32;
+            let b_after_15 = _mm256_extract_epi32(b, 0) as u32;
+            let c_after_15 = _mm256_extract_epi32(c, 0) as u32;
+            let d_after_15 = _mm256_extract_epi32(d, 0) as u32;
+            let e_after_15 = _mm256_extract_epi32(e, 0) as u32;
+            let f_after_15 = _mm256_extract_epi32(f, 0) as u32;
+            let g_after_15 = _mm256_extract_epi32(g, 0) as u32;
+            let h_after_15 = _mm256_extract_epi32(h, 0) as u32;
+            println!(
+                "DEBUG Transform 3 after round 15: a=0x{a_after_15:08x}, b=0x{b_after_15:08x}, c=0x{c_after_15:08x}, d=0x{d_after_15:08x}"
+            );
+            println!(
+                "  e=0x{e_after_15:08x}, f=0x{f_after_15:08x}, g=0x{g_after_15:08x}, h=0x{h_after_15:08x}"
+            );
+            println!("  Expected: a=0xf5539ad2, b=0x2c0362a7, c=0xda1fbbd3, d=0x3c3a4027");
+        }
+
+        // Rounds 16-63: Message schedule with special handling (Transform 2)
+        // Message schedule Transform 2: different pattern than Transform 1
+        #[cfg(debug_assertions)]
+        {
+            let a_before_16 = _mm256_extract_epi32(a, 0) as u32;
+            let b_before_16 = _mm256_extract_epi32(b, 0) as u32;
+            let c_before_16 = _mm256_extract_epi32(c, 0) as u32;
+            let d_before_16 = _mm256_extract_epi32(d, 0) as u32;
+            let e_before_16 = _mm256_extract_epi32(e, 0) as u32;
+            let f_before_16 = _mm256_extract_epi32(f, 0) as u32;
+            let g_before_16 = _mm256_extract_epi32(g, 0) as u32;
+            let h_before_16 = _mm256_extract_epi32(h, 0) as u32;
+            println!(
+                "DEBUG Transform 3 before round 16: a=0x{a_before_16:08x}, b=0x{b_before_16:08x}, c=0x{c_before_16:08x}, d=0x{d_before_16:08x}"
+            );
+            println!(
+                "  e=0x{e_before_16:08x}, f=0x{f_before_16:08x}, g=0x{g_before_16:08x}, h=0x{h_before_16:08x}"
+            );
+            println!(
+                "  Expected after round 15: a=0xf5539ad2, b=0x2c0362a7, c=0xda1fbbd3, d=0x3c3a4027"
+            );
+            let w0_before_t3_round16 = _mm256_extract_epi32(w0, 0) as u32;
+            let w1_before_t3_round16 = _mm256_extract_epi32(w1, 0) as u32;
+            println!(
+                "DEBUG Transform 3 round 16 before inc: w0=0x{w0_before_t3_round16:08x}, w1=0x{w1_before_t3_round16:08x}"
+            );
+        }
+        // Save old values before round 16 - these will be needed in round 17
+        // Round 16 modifies d and h, so we save c and d (which become $d and $e in round 17)
+        let _c_old_16 = c;
+        let _d_old_16 = d;
+        #[cfg(debug_assertions)]
+        {
+            let d_before_16 = _mm256_extract_epi32(d, 0) as u32;
+            let w0_before = _mm256_extract_epi32(w0, 0) as u32;
+            let w1_before = _mm256_extract_epi32(w1, 0) as u32;
+            println!(
+                "DEBUG Transform 3 round 16: d before = 0x{d_before_16:08x} (expected 0x3c3a4027), w0=0x{w0_before:08x}, w1=0x{w1_before:08x}"
+            );
+        }
+        // Rounds 16-31: Match message schedule Transform 3 exactly
+        #[cfg(debug_assertions)]
+        {
+            let w0_before = _mm256_extract_epi32(w0, 0) as u32;
+            let w1_before = _mm256_extract_epi32(w1, 0) as u32;
+            println!("DEBUG T3 R16 before: w0=0x{w0_before:08x} w1=0x{w1_before:08x}");
+        }
+        helpers::inc(&mut w0, helpers::sigma0_small(w1));
+        #[cfg(debug_assertions)]
+        {
+            let w0_after = _mm256_extract_epi32(w0, 0) as u32;
+            println!("DEBUG T3 R16 after inc: w0=0x{w0_after:08x}");
+        }
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[16]), w0));
+        #[cfg(debug_assertions)]
+        {
+            let a_after = _mm256_extract_epi32(a, 0) as u32;
+            println!("DEBUG T3 R16 after round: a=0x{a_after:08x}");
+        }
+        helpers::inc3(&mut w1, k(0xa00000), helpers::sigma0_small(w2));
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[17]), w1));
+        #[cfg(debug_assertions)]
+        {
+            let g_after = _mm256_extract_epi32(g, 0) as u32;
+            println!("DEBUG T3 R17 after: g=0x{g_after:08x}");
+        }
+        helpers::inc3(
+            &mut w2,
+            helpers::sigma1_small(w0),
+            helpers::sigma0_small(w3),
+        );
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[18]), w2));
+        helpers::inc3(
+            &mut w3,
+            helpers::sigma1_small(w1),
+            helpers::sigma0_small(w4),
+        );
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[19]), w3));
+        helpers::inc3(
+            &mut w4,
+            helpers::sigma1_small(w2),
+            helpers::sigma0_small(w5),
+        );
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[20]), w4));
+        helpers::inc3(
+            &mut w5,
+            helpers::sigma1_small(w3),
+            helpers::sigma0_small(w6),
+        );
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[21]), w5));
+        helpers::inc4(
+            &mut w6,
+            helpers::sigma1_small(w4),
+            k(0x100),
+            helpers::sigma0_small(w7),
+        );
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[22]), w6));
+        helpers::inc4(&mut w7, helpers::sigma1_small(w5), w0, k(0x11002000));
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[23]), w7));
+        w8 = helpers::add3(k(0x80000000), helpers::sigma1_small(w6), w1);
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[24]), w8));
+        w9 = helpers::add(helpers::sigma1_small(w7), w2);
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[25]), w9));
+        w10 = helpers::add(helpers::sigma1_small(w8), w3);
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[26]), w10));
+        w11 = helpers::add(helpers::sigma1_small(w9), w4);
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[27]), w11));
+        w12 = helpers::add(helpers::sigma1_small(w10), w5);
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[28]), w12));
+        w13 = helpers::add(helpers::sigma1_small(w11), w6);
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[29]), w13));
+        w14 = helpers::add3(helpers::sigma1_small(w12), w7, k(0x400022));
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[30]), w14));
+        w15 = helpers::add4(
+            k(0x100),
+            helpers::sigma1_small(w13),
+            w8,
+            helpers::sigma0_small(w0),
+        );
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[31]), w15));
+
+        // Continue with standard message schedule for rounds 32-63 (matching Transform 3 pattern)
+        #[cfg(debug_assertions)]
+        {
+            let a_before_32 = _mm256_extract_epi32(a, 0) as u32;
+            println!("DEBUG T3 R32 before: a=0x{a_before_32:08x}");
+        }
+        helpers::inc4(
+            &mut w0,
+            helpers::sigma1_small(w14),
+            w9,
+            helpers::sigma0_small(w1),
+        );
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[32]), w0));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_32 = _mm256_extract_epi32(a, 0) as u32;
+            println!("DEBUG T3 R32 after: a=0x{a_after_32:08x}");
+        }
+        helpers::inc4(
+            &mut w1,
+            helpers::sigma1_small(w15),
+            w10,
+            helpers::sigma0_small(w2),
+        );
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[33]), w1));
+        helpers::inc4(
+            &mut w2,
+            helpers::sigma1_small(w0),
+            w11,
+            helpers::sigma0_small(w3),
+        );
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[34]), w2));
+        helpers::inc4(
+            &mut w3,
+            helpers::sigma1_small(w1),
+            w12,
+            helpers::sigma0_small(w4),
+        );
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[35]), w3));
+        helpers::inc4(
+            &mut w4,
+            helpers::sigma1_small(w2),
+            w13,
+            helpers::sigma0_small(w5),
+        );
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[36]), w4));
+        helpers::inc4(
+            &mut w5,
+            helpers::sigma1_small(w3),
+            w14,
+            helpers::sigma0_small(w6),
+        );
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[37]), w5));
+        helpers::inc4(
+            &mut w6,
+            helpers::sigma1_small(w4),
+            w15,
+            helpers::sigma0_small(w7),
+        );
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[38]), w6));
+        helpers::inc4(
+            &mut w7,
+            helpers::sigma1_small(w5),
+            w0,
+            helpers::sigma0_small(w8),
+        );
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[39]), w7));
+        helpers::inc4(
+            &mut w8,
+            helpers::sigma1_small(w6),
+            w1,
+            helpers::sigma0_small(w9),
+        );
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[40]), w8));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_40 = _mm256_extract_epi32(a, 0) as u32;
+            let h_after_40 = _mm256_extract_epi32(h, 0) as u32;
+            println!("DEBUG T3 R40 after: a=0x{a_after_40:08x}, h=0x{h_after_40:08x}");
+        }
+        helpers::inc4(
+            &mut w9,
+            helpers::sigma1_small(w7),
+            w2,
+            helpers::sigma0_small(w10),
+        );
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[41]), w9));
+        helpers::inc4(
+            &mut w10,
+            helpers::sigma1_small(w8),
+            w3,
+            helpers::sigma0_small(w11),
+        );
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[42]), w10));
+        helpers::inc4(
+            &mut w11,
+            helpers::sigma1_small(w9),
+            w4,
+            helpers::sigma0_small(w12),
+        );
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[43]), w11));
+        helpers::inc4(
+            &mut w12,
+            helpers::sigma1_small(w10),
+            w5,
+            helpers::sigma0_small(w13),
+        );
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[44]), w12));
+        helpers::inc4(
+            &mut w13,
+            helpers::sigma1_small(w11),
+            w6,
+            helpers::sigma0_small(w14),
+        );
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[45]), w13));
+        helpers::inc4(
+            &mut w14,
+            helpers::sigma1_small(w12),
+            w7,
+            helpers::sigma0_small(w15),
+        );
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[46]), w14));
+        helpers::inc4(
+            &mut w15,
+            helpers::sigma1_small(w13),
+            w8,
+            helpers::sigma0_small(w0),
+        );
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[47]), w15));
+        helpers::inc4(
+            &mut w0,
+            helpers::sigma1_small(w14),
+            w9,
+            helpers::sigma0_small(w1),
+        );
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[48]), w0));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_48 = _mm256_extract_epi32(a, 0) as u32;
+            println!("DEBUG T3 R48 after: a=0x{a_after_48:08x}");
+        }
+        helpers::inc4(
+            &mut w1,
+            helpers::sigma1_small(w15),
+            w10,
+            helpers::sigma0_small(w2),
+        );
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[49]), w1));
+        helpers::inc4(
+            &mut w2,
+            helpers::sigma1_small(w0),
+            w11,
+            helpers::sigma0_small(w3),
+        );
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[50]), w2));
+        helpers::inc4(
+            &mut w3,
+            helpers::sigma1_small(w1),
+            w12,
+            helpers::sigma0_small(w4),
+        );
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[51]), w3));
+        helpers::inc4(
+            &mut w4,
+            helpers::sigma1_small(w2),
+            w13,
+            helpers::sigma0_small(w5),
+        );
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[52]), w4));
+        helpers::inc4(
+            &mut w5,
+            helpers::sigma1_small(w3),
+            w14,
+            helpers::sigma0_small(w6),
+        );
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[53]), w5));
+        helpers::inc4(
+            &mut w6,
+            helpers::sigma1_small(w4),
+            w15,
+            helpers::sigma0_small(w7),
+        );
+        round!(c, d, e, f, g, h, a, b, add(k(K_ARRAY.0[54]), w6));
+        helpers::inc4(
+            &mut w7,
+            helpers::sigma1_small(w5),
+            w0,
+            helpers::sigma0_small(w8),
+        );
+        round!(b, c, d, e, f, g, h, a, add(k(K_ARRAY.0[55]), w7));
+        helpers::inc4(
+            &mut w8,
+            helpers::sigma1_small(w6),
+            w1,
+            helpers::sigma0_small(w9),
+        );
+        round!(a, b, c, d, e, f, g, h, add(k(K_ARRAY.0[56]), w8));
+        #[cfg(debug_assertions)]
+        {
+            let a_after_56 = _mm256_extract_epi32(a, 0) as u32;
+            println!("DEBUG T3 R56 after: a=0x{a_after_56:08x}");
+        }
+        helpers::inc4(
+            &mut w9,
+            helpers::sigma1_small(w7),
+            w2,
+            helpers::sigma0_small(w10),
+        );
+        round!(h, a, b, c, d, e, f, g, add(k(K_ARRAY.0[57]), w9));
+        helpers::inc4(
+            &mut w10,
+            helpers::sigma1_small(w8),
+            w3,
+            helpers::sigma0_small(w11),
+        );
+        round!(g, h, a, b, c, d, e, f, add(k(K_ARRAY.0[58]), w10));
+        helpers::inc4(
+            &mut w11,
+            helpers::sigma1_small(w9),
+            w4,
+            helpers::sigma0_small(w12),
+        );
+        round!(f, g, h, a, b, c, d, e, add(k(K_ARRAY.0[59]), w11));
+        helpers::inc4(
+            &mut w12,
+            helpers::sigma1_small(w10),
+            w5,
+            helpers::sigma0_small(w13),
+        );
+        round!(e, f, g, h, a, b, c, d, add(k(K_ARRAY.0[60]), w12));
+        helpers::inc4(
+            &mut w13,
+            helpers::sigma1_small(w11),
+            w6,
+            helpers::sigma0_small(w14),
+        );
+        round!(d, e, f, g, h, a, b, c, add(k(K_ARRAY.0[61]), w13));
+        // Message schedule Transform 3 rounds 62-63: Use Add with 5 args, w14/w15 NOT modified (different from Transform 1)
+        round!(
+            c,
+            d,
+            e,
+            f,
+            g,
+            h,
+            a,
+            b,
+            helpers::add5(
+                k(K_ARRAY.0[62]),
+                w14,
+                helpers::sigma1_small(w12),
+                w7,
+                helpers::sigma0_small(w15)
+            )
+        );
+        round!(
+            b,
+            c,
+            d,
+            e,
+            f,
+            g,
+            h,
+            a,
+            helpers::add5(
+                k(K_ARRAY.0[63]),
+                w15,
+                helpers::sigma1_small(w13),
+                w8,
+                helpers::sigma0_small(w0)
+            )
+        );
+
+        // Add initial hash values and write output
+        // Add initial hash values before writing output
+        #[cfg(debug_assertions)]
+        {
+            // After round 63: round!(b, c, d, e, f, g, h, a, ...)
+            // $d = e (modified)
+            // $h = a (modified)
+            // After rotation, final state is: (a, b, c, d, e, f, g, h)
+            // where a was modified (was $h), e was modified (was $d)
+            let a_before_final = _mm256_extract_epi32(a, 0) as u32;
+            let b_before_final = _mm256_extract_epi32(b, 0) as u32;
+            let c_before_final = _mm256_extract_epi32(c, 0) as u32;
+            let d_before_final = _mm256_extract_epi32(d, 0) as u32;
+            let e_before_final = _mm256_extract_epi32(e, 0) as u32;
+            let f_before_final = _mm256_extract_epi32(f, 0) as u32;
+            let g_before_final = _mm256_extract_epi32(g, 0) as u32;
+            let h_before_final = _mm256_extract_epi32(h, 0) as u32;
+            println!(
+                "DEBUG Transform 3 after round 63: a=0x{a_before_final:08x}, b=0x{b_before_final:08x}, c=0x{c_before_final:08x}, d=0x{d_before_final:08x}"
+            );
+            println!(
+                "  e=0x{e_before_final:08x}, f=0x{f_before_final:08x}, g=0x{g_before_final:08x}, h=0x{h_before_final:08x}"
+            );
+            println!(
+                "DEBUG Transform 3 before adding initial hash: a=0x{a_before_final:08x} (expected 0x78ec3678)"
+            );
+        }
+        // Write8(out, 0, Add(a, K(0x6a09e667ul)));
+        let a_final = add(a, k(INITIAL_HASH.0[0]));
+        #[cfg(debug_assertions)]
+        {
+            let a_final_val = _mm256_extract_epi32(a_final, 0) as u32;
+            println!("DEBUG Transform 3 final a (after adding initial): 0x{a_final_val:08x}");
+        }
+        write8(out, 0, a_final);
+        write8(out, 4, add(b, k(INITIAL_HASH.0[1])));
+        write8(out, 8, add(c, k(INITIAL_HASH.0[2])));
+        write8(out, 12, add(d, k(INITIAL_HASH.0[3])));
+        write8(out, 16, add(e, k(INITIAL_HASH.0[4])));
+        write8(out, 20, add(f, k(INITIAL_HASH.0[5])));
+        write8(out, 24, add(g, k(INITIAL_HASH.0[6])));
+        write8(out, 28, add(h, k(INITIAL_HASH.0[7])));
+        #[cfg(debug_assertions)]
+        {
+            // Check what we wrote
+            println!("DEBUG Transform 3 output first 8 bytes: {:?}", &out[0..8]);
+        }
     }
 }
 
@@ -1450,40 +1519,42 @@ unsafe fn transform_8way(out: &mut [u8], input: &[u8]) {
 /// Caller must ensure AVX2 is available and inputs are 64 bytes each.
 #[cfg(target_arch = "x86_64")]
 pub unsafe fn sha256_8way_avx2(inputs: &[&[u8]; 8]) -> [[u8; 32]; 8] {
-    // For inputs that aren't exactly 64 bytes, we need to handle padding
-    // For now, use sha2 crate as fallback for non-64-byte inputs
-    use bitcoin_hashes::{sha256d, Hash as BitcoinHash};
+    unsafe {
+        // For inputs that aren't exactly 64 bytes, we need to handle padding
+        // For now, use sha2 crate as fallback for non-64-byte inputs
+        use bitcoin_hashes::{Hash as BitcoinHash, sha256d};
 
-    // Check if all inputs are exactly 64 bytes
-    let all_64_bytes = inputs.iter().all(|input| input.len() == 64);
+        // Check if all inputs are exactly 64 bytes
+        let all_64_bytes = inputs.iter().all(|input| input.len() == 64);
 
-    if !all_64_bytes {
-        // Fallback to sha2 crate for non-64-byte inputs
-        let mut results = [[0u8; 32]; 8];
-        for (i, input) in inputs.iter().enumerate() {
-            let hash = <sha256d::Hash as BitcoinHash>::hash(input);
-            results[i].copy_from_slice(&hash.into_inner());
+        if !all_64_bytes {
+            // Fallback to sha2 crate for non-64-byte inputs
+            let mut results = [[0u8; 32]; 8];
+            for (i, input) in inputs.iter().enumerate() {
+                let hash = <sha256d::Hash as BitcoinHash>::hash(input);
+                results[i].copy_from_slice(&hash.into_inner());
+            }
+            return results;
         }
-        return results;
+
+        // Pack 8 inputs into contiguous 512-byte buffer
+        let mut input_buf = [0u8; 512];
+        for (i, input) in inputs.iter().enumerate() {
+            input_buf[i * 64..(i + 1) * 64].copy_from_slice(input);
+        }
+
+        // Transform (double SHA256)
+        let mut output_buf = [0u8; 256];
+        transform_8way(&mut output_buf, &input_buf);
+
+        // Unpack results
+        let mut results = [[0u8; 32]; 8];
+        for i in 0..8 {
+            results[i].copy_from_slice(&output_buf[i * 32..(i + 1) * 32]);
+        }
+
+        results
     }
-
-    // Pack 8 inputs into contiguous 512-byte buffer
-    let mut input_buf = [0u8; 512];
-    for (i, input) in inputs.iter().enumerate() {
-        input_buf[i * 64..(i + 1) * 64].copy_from_slice(input);
-    }
-
-    // Transform (double SHA256)
-    let mut output_buf = [0u8; 256];
-    transform_8way(&mut output_buf, &input_buf);
-
-    // Unpack results
-    let mut results = [[0u8; 32]; 8];
-    for i in 0..8 {
-        results[i].copy_from_slice(&output_buf[i * 32..(i + 1) * 32]);
-    }
-
-    results
 }
 
 /// Check if AVX2 is available and can be used
@@ -1506,7 +1577,7 @@ pub unsafe fn sha256_8way_avx2(_inputs: &[&[u8]; 8]) -> [[u8; 32]; 8] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bitcoin_hashes::{sha256d, Hash as BitcoinHash, HashEngine};
+    use bitcoin_hashes::{Hash as BitcoinHash, HashEngine, sha256d};
 
     #[test]
     #[cfg(target_arch = "x86_64")]

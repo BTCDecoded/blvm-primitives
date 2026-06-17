@@ -18,4 +18,4 @@ pub use transaction::{
     deserialize_transaction_with_witness, serialize_transaction, serialize_transaction_into,
     serialize_transaction_with_witness,
 };
-pub use varint::{decode_varint, encode_varint, VarIntError};
+pub use varint::{VarIntError, decode_varint, encode_varint};
