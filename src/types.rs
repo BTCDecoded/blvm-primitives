@@ -214,6 +214,8 @@ pub enum Network {
     Testnet,
     /// Bitcoin regtest (local testing)
     Regtest,
+    /// Bitcoin signet (BIP325 test network with block-solution challenge)
+    Signet,
 }
 
 /// Time context for consensus validation
@@ -282,11 +284,13 @@ impl Network {
     /// Checks `BITCOIN_NETWORK` environment variable:
     /// - "testnet" -> Network::Testnet
     /// - "regtest" -> Network::Regtest
+    /// - "signet" -> Network::Signet
     /// - otherwise -> Network::Mainnet
     pub fn from_env() -> Self {
         match std::env::var("BITCOIN_NETWORK").as_deref() {
             Ok("testnet") => Network::Testnet,
             Ok("regtest") => Network::Regtest,
+            Ok("signet") => Network::Signet,
             _ => Network::Mainnet,
         }
     }
@@ -299,6 +303,7 @@ impl Network {
             Network::Mainnet => "bc",
             Network::Testnet => "tb",
             Network::Regtest => "bcrt",
+            Network::Signet => "tb",
         }
     }
 }
