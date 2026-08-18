@@ -71,7 +71,13 @@ pub type Witness = Vec<ByteString>;
 /// Reducing below 25 would push P2PKH to Arc, adding back ~1.6 GB for 70% of UTXOs.
 const SHARED_BYTE_INLINE_CAP: usize = 25;
 
-#[derive(Clone)]
+/// Live count of SharedByteString instances using heap Arc<[u8]> (script > 25 bytes).
+/// Each live Shared variant holds one Arc heap allocation of (16 + script_len) bytes.
+/// If this grows unboundedly it means Arc<[u8]> script refs are being retained somewhere.
+pub static SBS_SHARED_LIVE: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(0);
+/// Total Shared variants ever created (never decremented).
+pub static SBS_SHARED_TOTAL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 enum SharedRepr {
     Inline {
         len: u8,
@@ -81,7 +87,7 @@ enum SharedRepr {
 }
 
 /// Shareable script_pubkey for UTXO: small scripts use inline storage; longer use `Arc<[u8]>`.
-/// Clone is cheap (inline copies up to 64 bytes, shared is `Arc::clone`). Serde matches `ByteString`.
+/// Clone is cheap (inline copies up to `SHARED_BYTE_INLINE_CAP` bytes, shared is `Arc::clone`). Serde matches `ByteString`.
 #[derive(Clone)]
 pub struct SharedByteString(SharedRepr);
 
@@ -127,7 +133,33 @@ impl SharedByteString {
                 data,
             })
         } else {
+            SBS_SHARED_LIVE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            SBS_SHARED_TOTAL.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             Self(SharedRepr::Shared(std::sync::Arc::from(v)))
+        }
+    }
+}
+
+// Manual Clone (not `#[derive]`): SharedRepr::Shared must bump SBS_SHARED_LIVE on clone.
+// Arc<[u8]> refcount increments but no new heap allocation. SBS_SHARED_TOTAL counts
+// distinct heap allocations (from_bytes only). SBS_SHARED_LIVE counts live Shared
+// *instances* across clones.
+impl Clone for SharedRepr {
+    fn clone(&self) -> Self {
+        match self {
+            SharedRepr::Inline { len, data } => SharedRepr::Inline { len: *len, data: *data },
+            SharedRepr::Shared(a) => {
+                SBS_SHARED_LIVE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                SharedRepr::Shared(std::sync::Arc::clone(a))
+            }
+        }
+    }
+}
+
+impl Drop for SharedRepr {
+    fn drop(&mut self) {
+        if matches!(self, SharedRepr::Shared(_)) {
+            SBS_SHARED_LIVE.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
         }
     }
 }
@@ -469,6 +501,15 @@ impl std::convert::AsRef<BlockHeader> for BlockHeader {
         self
     }
 }
+
+/// Total Arc<Block> heap allocations created on IBD production paths.
+/// Incremented at: download `received_put` (live + CHUNK_OBSOLETE drain),
+/// `local_block` gap inject. Test dummies do not increment (not in MEM_REPORT).
+pub static ARC_BLOCK_CREATED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Total Arc<BlockHeader> heap allocations created (each Arc::new(header) call).
+/// Compare to jemalloc bin112 curregs to see how many have been freed.
+pub static ARC_BLOCKHEADER_CREATED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 /// Block: ℬ = ℋ × 𝒯𝒳*
 ///
