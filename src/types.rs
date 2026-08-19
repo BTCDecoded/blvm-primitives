@@ -147,7 +147,10 @@ impl SharedByteString {
 impl Clone for SharedRepr {
     fn clone(&self) -> Self {
         match self {
-            SharedRepr::Inline { len, data } => SharedRepr::Inline { len: *len, data: *data },
+            SharedRepr::Inline { len, data } => SharedRepr::Inline {
+                len: *len,
+                data: *data,
+            },
             SharedRepr::Shared(a) => {
                 SBS_SHARED_LIVE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 SharedRepr::Shared(std::sync::Arc::clone(a))
@@ -509,7 +512,8 @@ pub static ARC_BLOCK_CREATED: std::sync::atomic::AtomicU64 = std::sync::atomic::
 
 /// Total Arc<BlockHeader> heap allocations created (each Arc::new(header) call).
 /// Compare to jemalloc bin112 curregs to see how many have been freed.
-pub static ARC_BLOCKHEADER_CREATED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+pub static ARC_BLOCKHEADER_CREATED: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
 
 /// Block: ℬ = ℋ × 𝒯𝒳*
 ///
