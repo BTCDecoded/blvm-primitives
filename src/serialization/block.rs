@@ -149,10 +149,7 @@ pub fn deserialize_block_with_witnesses(data: &[u8]) -> Result<(Block, Vec<Vec<W
     }
 
     Ok((
-        Block {
-            header,
-            transactions: transactions.into_boxed_slice(),
-        },
+        Block::from_parts(header, transactions.into_boxed_slice()),
         all_witnesses,
     ))
 }

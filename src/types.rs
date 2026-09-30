@@ -1,6 +1,7 @@
 //! Essential Bitcoin types for consensus validation
 
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 
 #[cfg(feature = "production")]
 use rustc_hash::FxHashMap;
@@ -515,15 +516,112 @@ pub static ARC_BLOCK_CREATED: std::sync::atomic::AtomicU64 = std::sync::atomic::
 pub static ARC_BLOCKHEADER_CREATED: std::sync::atomic::AtomicU64 =
     std::sync::atomic::AtomicU64::new(0);
 
+/// Live `Block` values created via `from_parts` / serde / `Clone` (IBD wire decode
+/// + store + deep copies). Struct-literal test/miner blocks are not incremented.
+/// `Drop` floors at 0 (i64 saturating_sub does not).
+pub static BLOCK_LIVE: AtomicI64 = AtomicI64::new(0);
+
+/// Live `Box<[Transaction]>` whose heap size falls in jemalloc 768KiB–1.5MiB
+/// large classes (`n_tx * size_of::<Transaction>()`). dest-ba 650k bins of
+/// 1.00 / 1.25 MiB are this size class (256 B × 4096 / 5120 txs).
+pub static LARGE_TX_SLICE_LIVE: AtomicI64 = AtomicI64::new(0);
+
+/// Sum of those large slice heaps (bytes).
+pub static LARGE_TX_SLICE_BYTES: AtomicU64 = AtomicU64::new(0);
+
+/// Inclusive jemalloc-large window that covers the 768KiB / 1.00 / 1.25 / 1.50 MiB classes.
+pub const TX_SLICE_LARGE_MIN: usize = 786_432;
+pub const TX_SLICE_LARGE_MAX: usize = 1_572_864;
+
+#[inline]
+pub fn tx_slice_heap_bytes(n_tx: usize) -> usize {
+    n_tx.saturating_mul(std::mem::size_of::<Transaction>())
+}
+
+#[inline]
+fn note_block_new(n_tx: usize) {
+    BLOCK_LIVE.fetch_add(1, Ordering::Relaxed);
+    let b = tx_slice_heap_bytes(n_tx);
+    if (TX_SLICE_LARGE_MIN..=TX_SLICE_LARGE_MAX).contains(&b) {
+        LARGE_TX_SLICE_LIVE.fetch_add(1, Ordering::Relaxed);
+        LARGE_TX_SLICE_BYTES.fetch_add(b as u64, Ordering::Relaxed);
+    }
+}
+
+#[inline]
+fn note_block_drop(n_tx: usize) {
+    // i64 saturating_sub floors at i64::MIN, not 0. M-1 claimed this could
+    // not go negative; dest S-15 printed Block_live=-455775 because wire
+    // decode used a struct literal (no increment) and Drop still decremented.
+    BLOCK_LIVE
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| {
+            Some(if v > 0 { v - 1 } else { 0 })
+        })
+        .ok();
+    let b = tx_slice_heap_bytes(n_tx);
+    if (TX_SLICE_LARGE_MIN..=TX_SLICE_LARGE_MAX).contains(&b) {
+        LARGE_TX_SLICE_LIVE
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| {
+                Some(if v > 0 { v - 1 } else { 0 })
+            })
+            .ok();
+        LARGE_TX_SLICE_BYTES
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| {
+                Some(v.saturating_sub(b as u64))
+            })
+            .ok();
+    }
+}
+
 /// Block: ℬ = ℋ × 𝒯𝒳*
 ///
 /// Performance optimization: Uses Box<[Transaction]> instead of Vec<Transaction>
 /// since transactions are never modified after block creation. This saves 8 bytes
 /// (no capacity field) and provides better cache usage.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct Block {
     pub header: BlockHeader,
     pub transactions: Box<[Transaction]>,
+}
+
+impl Block {
+    /// Wire-decode / explicit construction. Counts as live (M-2: serde-only
+    /// hooks missed `deserialize_block_with_witnesses`, which uses this path).
+    pub fn from_parts(header: BlockHeader, transactions: Box<[Transaction]>) -> Self {
+        note_block_new(transactions.len());
+        Self {
+            header,
+            transactions,
+        }
+    }
+}
+
+impl Clone for Block {
+    fn clone(&self) -> Self {
+        Self::from_parts(self.header.clone(), self.transactions.clone())
+    }
+}
+
+impl<'de> Deserialize<'de> for Block {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        struct BlockDe {
+            header: BlockHeader,
+            transactions: Box<[Transaction]>,
+        }
+        let raw = BlockDe::deserialize(deserializer)?;
+        note_block_new(raw.transactions.len());
+        Ok(Self {
+            header: raw.header,
+            transactions: raw.transactions,
+        })
+    }
+}
+
+impl Drop for Block {
+    fn drop(&mut self) {
+        note_block_drop(self.transactions.len());
+    }
 }
 
 /// UTXO: 𝒰 = ℤ × 𝕊 × ℕ
@@ -595,4 +693,86 @@ pub struct BlockContext {
     pub height: Natural,
     pub prev_headers: Vec<BlockHeader>,
     pub utxo_set: UtxoSet,
+}
+
+#[cfg(test)]
+mod m1_block_live_tests {
+    use super::*;
+
+    #[test]
+    fn dest_ba_1mib_classes_are_tx_slice_widths() {
+        let tsz = std::mem::size_of::<Transaction>();
+        assert_eq!(tx_slice_heap_bytes(4096), 4096 * tsz);
+        assert_eq!(tx_slice_heap_bytes(5120), 5120 * tsz);
+        // production IBD: Transaction=256 → jemalloc 768KiB / 1.00 / 1.25 / 1.50 MiB.
+        if tsz == 256 {
+            assert_eq!(tx_slice_heap_bytes(3072), 786_432);
+            assert_eq!(tx_slice_heap_bytes(4096), 1_048_576);
+            assert_eq!(tx_slice_heap_bytes(5120), 1_310_720);
+            assert_eq!(tx_slice_heap_bytes(6144), 1_572_864);
+            assert!((TX_SLICE_LARGE_MIN..=TX_SLICE_LARGE_MAX).contains(&tx_slice_heap_bytes(4096)));
+            assert!((TX_SLICE_LARGE_MIN..=TX_SLICE_LARGE_MAX).contains(&tx_slice_heap_bytes(5120)));
+        }
+    }
+
+    #[test]
+    fn serde_notes_block_live() {
+        let literal = Block {
+            header: BlockHeader::default(),
+            transactions: Vec::new().into_boxed_slice(),
+        };
+        let json = serde_json::to_string(&literal).expect("ser");
+        drop(literal);
+        let before = BLOCK_LIVE.load(Ordering::Relaxed);
+        let decoded: Block = serde_json::from_str(&json).expect("de");
+        assert_eq!(BLOCK_LIVE.load(Ordering::Relaxed), before + 1);
+        drop(decoded);
+        assert_eq!(BLOCK_LIVE.load(Ordering::Relaxed), before);
+    }
+
+    #[test]
+    fn wire_decode_notes_block_live() {
+        use crate::serialization::block::{
+            deserialize_block_with_witnesses, serialize_block,
+        };
+        let tx = Transaction {
+            version: 1,
+            inputs: crate::tx_inputs![TransactionInput {
+                prevout: OutPoint {
+                    hash: [1; 32],
+                    index: 0
+                },
+                script_sig: vec![0x51],
+                sequence: 0xffffffff,
+            }],
+            outputs: crate::tx_outputs![TransactionOutput {
+                value: 50_0000_0000,
+                script_pubkey: vec![0x51],
+            }],
+            lock_time: 0,
+        };
+        let built = Block::from_parts(
+            BlockHeader::default(),
+            vec![tx].into_boxed_slice(),
+        );
+        let wire = serialize_block(&built);
+        drop(built);
+        let before = BLOCK_LIVE.load(Ordering::Relaxed);
+        let (decoded, _) = deserialize_block_with_witnesses(&wire).expect("wire decode");
+        assert_eq!(BLOCK_LIVE.load(Ordering::Relaxed), before + 1);
+        drop(decoded);
+        assert_eq!(BLOCK_LIVE.load(Ordering::Relaxed), before);
+    }
+
+    #[test]
+    fn drop_floors_live_at_zero() {
+        let before = BLOCK_LIVE.load(Ordering::Relaxed);
+        {
+            let _literal = Block {
+                header: BlockHeader::default(),
+                transactions: Vec::new().into_boxed_slice(),
+            };
+        }
+        assert_eq!(BLOCK_LIVE.load(Ordering::Relaxed), before);
+    }
 }
