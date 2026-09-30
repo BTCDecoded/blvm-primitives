@@ -173,10 +173,13 @@ pub struct MempoolConfig {
     #[serde(default = "default_max_standard_script_size")]
     pub max_standard_script_size: u32,
 
-    /// Reject envelope protocol (OP_FALSE OP_IF) scripts
+    /// Reject UnexecIf (OP_FALSE OP_IF) scripts
     /// Default: true
-    #[serde(default = "default_reject_envelope_protocol")]
-    pub reject_envelope_protocol: bool,
+    #[serde(
+        default = "default_reject_unexec_if",
+        alias = "reject_envelope_protocol"
+    )]
+    pub reject_unexec_if: bool,
 
     /// Reject spam transactions at mempool entry (opt-in)
     /// Default: false (spam filtering is opt-in for mempool)
@@ -244,7 +247,7 @@ fn default_max_standard_script_size() -> u32 {
     200
 }
 
-fn default_reject_envelope_protocol() -> bool {
+fn default_reject_unexec_if() -> bool {
     true
 }
 
@@ -273,7 +276,7 @@ impl Default for MempoolConfig {
             max_op_return_outputs: 1,
             reject_multiple_op_return: true,
             max_standard_script_size: 200,
-            reject_envelope_protocol: true,
+            reject_unexec_if: true,
             reject_spam_in_mempool: false,
             spam_filter_config: None,
             min_fee_rate_large_tx: 2,
