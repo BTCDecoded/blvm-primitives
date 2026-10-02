@@ -518,6 +518,7 @@ pub static ARC_BLOCKHEADER_CREATED: std::sync::atomic::AtomicU64 =
 
 /// Live `Block` values created via `from_parts` / serde / `Clone` (IBD wire decode
 /// + store + deep copies). Struct-literal test/miner blocks are not incremented.
+///
 /// `Drop` floors at 0 (i64 saturating_sub does not).
 pub static BLOCK_LIVE: AtomicI64 = AtomicI64::new(0);
 
