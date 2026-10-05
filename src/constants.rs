@@ -166,21 +166,16 @@ pub const SEGWIT_P2WSH_LENGTH: usize = 32;
 // Consensus-critical activation heights. Any change to these values would cause
 // a chain split. These heights are locked via formal proofs to match consensus.
 
-/// BIP30: Duplicate Coinbase Prevention - Mainnet deactivation height
-///
-/// BIP30 was disabled after this block to allow duplicate coinbases in blocks 91842 and 91880.
-/// Reference: consensus disabled BIP30 after block 91722
-pub const BIP30_DEACTIVATION_MAINNET: u64 = 91722;
+/// BIP30 has no deactivation height. `u64::MAX` keeps `height <= deactivation` true
+/// at every height. The two historical duplicate blocks are exempt by hash inside
+/// `check_bip30`, not by turning the rule off after block 91722.
+pub const BIP30_DEACTIVATION_MAINNET: u64 = u64::MAX;
 
-/// BIP30: Duplicate Coinbase Prevention - Testnet deactivation height
-///
-/// BIP30 was disabled after this block on testnet.
-pub const BIP30_DEACTIVATION_TESTNET: u64 = 0; // BIP30 never enforced on testnet
+/// BIP30 stays enforced on testnet. There is no deactivation height.
+pub const BIP30_DEACTIVATION_TESTNET: u64 = u64::MAX;
 
-/// BIP30: Duplicate Coinbase Prevention - Regtest deactivation height
-///
-/// BIP30 is never enforced on regtest.
-pub const BIP30_DEACTIVATION_REGTEST: u64 = 0;
+/// BIP30 stays enforced on regtest. There is no deactivation height.
+pub const BIP30_DEACTIVATION_REGTEST: u64 = u64::MAX;
 
 /// BIP16: P2SH (Pay-to-Script-Hash) - Mainnet activation height
 ///
