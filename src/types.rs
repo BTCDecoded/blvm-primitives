@@ -264,7 +264,7 @@ pub struct TimeContext {
     /// Used to reject blocks with timestamps too far in the future
     pub network_time: u64,
     /// Median time-past of previous 11 blocks (BIP113)
-    /// Used to reject blocks with timestamps before median time-past
+    /// Used to reject a block whose timestamp is not strictly later than this median
     pub median_time_past: u64,
 }
 
