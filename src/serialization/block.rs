@@ -3,7 +3,9 @@
 //! Bitcoin block header wire format specification.
 //! Must match consensus serialization exactly for consensus compatibility.
 
-use super::transaction::{deserialize_transaction_with_witness, serialize_transaction};
+use super::transaction::{
+    deserialize_transaction_with_witness, serialize_transaction, serialize_transaction_with_witness,
+};
 use super::varint::{decode_varint, encode_varint};
 use crate::error::{ConsensusError, Result};
 use crate::types::*;
@@ -165,29 +167,21 @@ pub fn serialize_block_with_witnesses(
     result.extend_from_slice(&serialize_block_header(&block.header));
     result.extend_from_slice(&encode_varint(block.transactions.len() as u64));
 
-    let has_witness = include_witness
-        && witnesses
-            .iter()
-            .any(|tx_witnesses| tx_witnesses.iter().any(|w| !w.is_empty()));
-
-    if has_witness {
-        result.push(0x00);
-        result.push(0x01);
-    }
-
-    for tx in block.transactions.iter() {
-        result.extend_from_slice(&serialize_transaction(tx));
-    }
-
-    if has_witness {
-        for tx_witnesses in witnesses.iter().take(block.transactions.len()) {
-            for witness in tx_witnesses {
-                result.extend_from_slice(&encode_varint(witness.len() as u64));
-                for element in witness {
-                    result.extend_from_slice(&encode_varint(element.len() as u64));
-                    result.extend_from_slice(element);
-                }
-            }
+    // Witness marker and stack belong inside each transaction, not after the
+    // transaction count and not after every transaction body.
+    for (i, tx) in block.transactions.iter().enumerate() {
+        let tx_witnesses = witnesses.get(i);
+        let use_witness = include_witness
+            && tx_witnesses.is_some_and(|stacks| {
+                stacks.len() == tx.inputs.len() && stacks.iter().any(|stack| !stack.is_empty())
+            });
+        if use_witness {
+            result.extend_from_slice(&serialize_transaction_with_witness(
+                tx,
+                tx_witnesses.unwrap(),
+            ));
+        } else {
+            result.extend_from_slice(&serialize_transaction(tx));
         }
     }
 
