@@ -733,9 +733,7 @@ mod m1_block_live_tests {
 
     #[test]
     fn wire_decode_notes_block_live() {
-        use crate::serialization::block::{
-            deserialize_block_with_witnesses, serialize_block,
-        };
+        use crate::serialization::block::{deserialize_block_with_witnesses, serialize_block};
         let tx = Transaction {
             version: 1,
             inputs: crate::tx_inputs![TransactionInput {
@@ -752,10 +750,7 @@ mod m1_block_live_tests {
             }],
             lock_time: 0,
         };
-        let built = Block::from_parts(
-            BlockHeader::default(),
-            vec![tx].into_boxed_slice(),
-        );
+        let built = Block::from_parts(BlockHeader::default(), vec![tx].into_boxed_slice());
         let wire = serialize_block(&built);
         drop(built);
         let before = BLOCK_LIVE.load(Ordering::Relaxed);
