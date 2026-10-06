@@ -429,7 +429,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Skip in CI - SHA-NI implementation has bugs or CI doesn't support it
     fn test_sha256_empty() {
         // Only test if SHA-NI is available, otherwise skip (fallback is tested elsewhere)
         if !is_sha_ni_available() {
@@ -449,7 +448,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Skip in CI - SHA-NI implementation has bugs or CI doesn't support it
     fn test_sha256_hello_world() {
         // Only test if SHA-NI is available, otherwise skip (fallback is tested elsewhere)
         if !is_sha_ni_available() {
@@ -466,7 +464,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Skip in CI - SHA-NI implementation has bugs or CI doesn't support it
     fn test_sha256_matches_reference() {
         // Only test if SHA-NI is available, otherwise skip (fallback is tested elsewhere)
         if !is_sha_ni_available() {
@@ -504,7 +501,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Skip in CI - SHA-NI implementation has bugs or CI doesn't support it
     fn test_double_sha256() {
         // Only test if SHA-NI is available, otherwise skip (fallback is tested elsewhere)
         if !is_sha_ni_available() {
@@ -522,7 +518,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Skip in CI - SHA-NI implementation has bugs or CI doesn't support it
     fn test_double_sha256_zero() {
         // Only test if SHA-NI is available, otherwise skip (fallback is tested elsewhere)
         if !is_sha_ni_available() {
