@@ -246,8 +246,10 @@ pub type Integer = i64;
 pub enum Network {
     /// Bitcoin mainnet
     Mainnet,
-    /// Bitcoin testnet
+    /// Bitcoin testnet (testnet3)
     Testnet,
+    /// Bitcoin testnet4 (BIP94)
+    Testnet4,
     /// Bitcoin regtest (local testing)
     Regtest,
     /// Bitcoin signet (BIP325 test network with block-solution challenge)
@@ -325,6 +327,7 @@ impl Network {
     pub fn from_env() -> Self {
         match std::env::var("BITCOIN_NETWORK").as_deref() {
             Ok("testnet") => Network::Testnet,
+            Ok("testnet4") => Network::Testnet4,
             Ok("regtest") => Network::Regtest,
             Ok("signet") => Network::Signet,
             _ => Network::Mainnet,
@@ -337,9 +340,8 @@ impl Network {
     pub fn hrp(&self) -> &'static str {
         match self {
             Network::Mainnet => "bc",
-            Network::Testnet => "tb",
+            Network::Testnet | Network::Testnet4 | Network::Signet => "tb",
             Network::Regtest => "bcrt",
-            Network::Signet => "tb",
         }
     }
 }
