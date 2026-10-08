@@ -132,7 +132,7 @@ pub fn serialize_transaction(tx: &Transaction) -> Vec<u8> {
 /// in Bitcoin Core).
 #[inline(always)]
 fn serialize_transaction_append(result: &mut Vec<u8>, tx: &Transaction) {
-    result.extend_from_slice(&(tx.version as i32).to_le_bytes());
+    result.extend_from_slice(&(tx.version as u32).to_le_bytes());
 
     if tx.inputs.is_empty() && !tx.outputs.is_empty() {
         result.extend_from_slice(&encode_varint(0));
@@ -177,7 +177,7 @@ pub fn serialize_transaction_with_witness(tx: &Transaction, witnesses: &[Witness
         "witness count must match input count"
     );
     let mut result = Vec::new();
-    result.extend_from_slice(&(tx.version as i32).to_le_bytes());
+    result.extend_from_slice(&(tx.version as u32).to_le_bytes());
     result.push(0x00);
     result.push(0x01);
     result.extend_from_slice(&encode_varint(tx.inputs.len() as u64));
@@ -368,7 +368,9 @@ pub fn deserialize_transaction_with_witness(
             TransactionParseError::InsufficientBytes.to_string(),
         )));
     }
-    let version = i32::from_le_bytes([
+    // The wire version is four unsigned bytes. Sign-extending into the u64
+    // field turned `0xffffffff` into `u64::MAX`.
+    let version = u32::from_le_bytes([
         data[offset],
         data[offset + 1],
         data[offset + 2],
@@ -504,5 +506,27 @@ mod tests {
         assert_eq!(back.lock_time, tx.lock_time);
         // version(4) + 0x00 dummy vin + 0x01 flag + 0x00 real ic + vout count + ...
         assert_eq!(&bytes[4..8], &[0u8, 1, 0, 1]);
+    }
+
+    #[test]
+    fn high_bit_version_stays_in_the_low_32_bits() {
+        let tx = Transaction {
+            version: 0xffff_ffff,
+            inputs: crate::tx_inputs![],
+            outputs: crate::tx_outputs![],
+            lock_time: 0,
+        };
+        let bytes = serialize_transaction(&tx);
+        assert_eq!(&bytes[0..4], &[0xff, 0xff, 0xff, 0xff]);
+        let back = deserialize_transaction(&bytes).unwrap();
+        assert_eq!(back.version, 0xffff_ffff);
+        assert!(back.version >= 2);
+
+        let witness_bytes = serialize_transaction_with_witness(&tx, &[]);
+        assert_eq!(&witness_bytes[0..4], &[0xff, 0xff, 0xff, 0xff]);
+        let (witness_back, stacks, _) =
+            deserialize_transaction_with_witness(&witness_bytes).unwrap();
+        assert_eq!(witness_back.version, 0xffff_ffff);
+        assert!(stacks.is_empty());
     }
 }
