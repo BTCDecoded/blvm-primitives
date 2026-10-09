@@ -20,6 +20,8 @@ pub enum TransactionParseError {
     InvalidOutputCount,
     InvalidScriptLength,
     InvalidLockTime,
+    /// Witness flag is set and every input stack is empty.
+    SuperfluousWitness,
 }
 
 impl std::fmt::Display for TransactionParseError {
@@ -33,6 +35,9 @@ impl std::fmt::Display for TransactionParseError {
             TransactionParseError::InvalidOutputCount => write!(f, "Invalid output count"),
             TransactionParseError::InvalidScriptLength => write!(f, "Invalid script length"),
             TransactionParseError::InvalidLockTime => write!(f, "Invalid lock time"),
+            TransactionParseError::SuperfluousWitness => {
+                write!(f, "Witness flag set but every witness stack is empty")
+            }
         }
     }
 }
@@ -169,13 +174,29 @@ pub fn serialize_transaction_into(dst: &mut Vec<u8>, tx: &Transaction) -> usize 
     dst.len()
 }
 
-/// Serialize a transaction in SegWit wire format
-pub fn serialize_transaction_with_witness(tx: &Transaction, witnesses: &[Witness]) -> Vec<u8> {
-    assert_eq!(
-        witnesses.len(),
-        tx.inputs.len(),
-        "witness count must match input count"
-    );
+/// Serialize a transaction in SegWit wire format.
+///
+/// A witness slice whose length is not the input count is an error.
+pub fn serialize_transaction_with_witness(
+    tx: &Transaction,
+    witnesses: &[Witness],
+) -> Result<Vec<u8>> {
+    if witnesses.len() != tx.inputs.len() {
+        return Err(ConsensusError::TransactionValidation(
+            format!(
+                "witness count {} must match input count {}",
+                witnesses.len(),
+                tx.inputs.len()
+            )
+            .into(),
+        ));
+    }
+    // A witness flag with only empty stacks is not a legal encoding. Emit the
+    // legacy transaction instead. Zero-input extended framing is unchanged:
+    // that transaction has no stacks to attach.
+    if !tx.inputs.is_empty() && witnesses.iter().all(|stack| stack.is_empty()) {
+        return Ok(serialize_transaction(tx));
+    }
     let mut result = Vec::new();
     result.extend_from_slice(&(tx.version as u32).to_le_bytes());
     result.push(0x00);
@@ -202,7 +223,7 @@ pub fn serialize_transaction_with_witness(tx: &Transaction, witnesses: &[Witness
         }
     }
     result.extend_from_slice(&(tx.lock_time as u32).to_le_bytes());
-    result
+    Ok(result)
 }
 
 /// Deserialize a transaction from Bitcoin wire format.
@@ -406,6 +427,14 @@ pub fn deserialize_transaction_with_witness(
             }
             all_witnesses.push(witness_stack);
         }
+        // BIP144: the witness flag requires at least one non-empty stack.
+        // A stack that contains an empty item still counts. This is not
+        // IsWitnessEmpty, which also treats all-empty items as empty.
+        if input_count > 0 && all_witnesses.iter().all(|stack| stack.is_empty()) {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::SuperfluousWitness.to_string(),
+            )));
+        }
     } else {
         for _ in 0..input_count {
             all_witnesses.push(Vec::new());
@@ -522,11 +551,109 @@ mod tests {
         assert_eq!(back.version, 0xffff_ffff);
         assert!(back.version >= 2);
 
-        let witness_bytes = serialize_transaction_with_witness(&tx, &[]);
+        let witness_bytes = serialize_transaction_with_witness(&tx, &[]).unwrap();
         assert_eq!(&witness_bytes[0..4], &[0xff, 0xff, 0xff, 0xff]);
         let (witness_back, stacks, _) =
             deserialize_transaction_with_witness(&witness_bytes).unwrap();
         assert_eq!(witness_back.version, 0xffff_ffff);
         assert!(stacks.is_empty());
+    }
+
+    #[test]
+    fn witness_flag_with_only_empty_stacks_does_not_decode() {
+        // version 1, marker, flag, one input, one empty output, empty witness stack, locktime 0.
+        let bytes = hex_bytes(
+            "0100000000010100000000000000000000000000000000000000000000000000\
+             00000000000000ffffffff00ffffffff010000000000000000000000000000",
+        );
+        let err = deserialize_transaction_with_witness(&bytes).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("every witness stack is empty"),
+            "unexpected error: {msg}"
+        );
+    }
+
+    #[test]
+    fn witness_stack_of_one_empty_item_still_decodes() {
+        let tx = Transaction {
+            version: 1,
+            inputs: crate::tx_inputs![TransactionInput {
+                prevout: OutPoint {
+                    hash: [0; 32],
+                    index: 0xffffffff,
+                },
+                script_sig: vec![],
+                sequence: 0xffffffff,
+            }],
+            outputs: crate::tx_outputs![TransactionOutput {
+                value: 0,
+                script_pubkey: vec![],
+            }],
+            lock_time: 0,
+        };
+        let bytes = serialize_transaction_with_witness(&tx, &[vec![vec![]]]).unwrap();
+        let (back, stacks, consumed) = deserialize_transaction_with_witness(&bytes).unwrap();
+        assert_eq!(consumed, bytes.len());
+        assert_eq!(back.inputs.len(), 1);
+        assert_eq!(stacks.len(), 1);
+        assert_eq!(stacks[0].len(), 1);
+        assert!(stacks[0][0].is_empty());
+    }
+
+    #[test]
+    fn empty_stacks_serialize_without_the_witness_flag() {
+        let tx = Transaction {
+            version: 1,
+            inputs: crate::tx_inputs![TransactionInput {
+                prevout: OutPoint {
+                    hash: [2; 32],
+                    index: 1,
+                },
+                script_sig: vec![0x51],
+                sequence: 0xfffffffe,
+            }],
+            outputs: crate::tx_outputs![TransactionOutput {
+                value: 50,
+                script_pubkey: vec![0x51],
+            }],
+            lock_time: 0,
+        };
+        let with_empty = serialize_transaction_with_witness(&tx, &[Vec::new()]).unwrap();
+        let legacy = serialize_transaction(&tx);
+        assert_eq!(with_empty, legacy);
+        let (back, stacks, _) = deserialize_transaction_with_witness(&with_empty).unwrap();
+        assert_eq!(back.inputs.len(), 1);
+        assert!(stacks[0].is_empty());
+    }
+
+    #[test]
+    fn witness_count_mismatch_is_an_error() {
+        let tx = Transaction {
+            version: 1,
+            inputs: crate::tx_inputs![TransactionInput {
+                prevout: OutPoint {
+                    hash: [3; 32],
+                    index: 0,
+                },
+                script_sig: vec![],
+                sequence: 0xffffffff,
+            }],
+            outputs: crate::tx_outputs![TransactionOutput {
+                value: 1,
+                script_pubkey: vec![],
+            }],
+            lock_time: 0,
+        };
+        assert!(serialize_transaction_with_witness(&tx, &[]).is_err());
+        assert!(serialize_transaction_with_witness(&tx, &[vec![vec![1]], vec![vec![2]]]).is_err());
+        assert!(serialize_transaction_with_witness(&tx, &[vec![vec![1]]]).is_ok());
+    }
+
+    fn hex_bytes(s: &str) -> Vec<u8> {
+        (0..s.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
+            .collect()
     }
 }

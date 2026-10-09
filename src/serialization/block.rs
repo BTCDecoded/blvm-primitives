@@ -176,10 +176,10 @@ pub fn serialize_block_with_witnesses(
                 stacks.len() == tx.inputs.len() && stacks.iter().any(|stack| !stack.is_empty())
             });
         if use_witness {
-            result.extend_from_slice(&serialize_transaction_with_witness(
-                tx,
-                tx_witnesses.unwrap(),
-            ));
+            result.extend_from_slice(
+                &serialize_transaction_with_witness(tx, tx_witnesses.unwrap())
+                    .expect("witness count matches inputs"),
+            );
         } else {
             result.extend_from_slice(&serialize_transaction(tx));
         }
