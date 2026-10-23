@@ -10,12 +10,15 @@ pub mod transaction;
 pub mod varint;
 
 pub use block::{
-    deserialize_block_header, deserialize_block_with_witnesses, serialize_block,
-    serialize_block_header, serialize_block_with_witnesses, validate_block_serialized_size,
+    deserialize_block_header, deserialize_block_with_witnesses,
+    output_script_pubkey_slices_from_wire_block,
+    serialize_block, serialize_block_header, serialize_block_with_witnesses,
+    validate_block_serialized_size,
 };
 pub use transaction::{
     deserialize_transaction, deserialize_transaction_with_offset,
-    deserialize_transaction_with_witness, serialize_transaction, serialize_transaction_into,
-    serialize_transaction_with_witness,
+    deserialize_transaction_with_witness, output_script_pubkey_slices_from_wire_tx,
+    serialize_transaction,
+    serialize_transaction_into, serialize_transaction_with_witness,
 };
 pub use varint::{VarIntError, decode_varint, encode_varint};

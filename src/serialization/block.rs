@@ -156,6 +156,31 @@ pub fn deserialize_block_with_witnesses(data: &[u8]) -> Result<(Block, Vec<Vec<W
     ))
 }
 
+/// Borrowed output scripts from a wire block, without building transactions or witnesses.
+pub fn output_script_pubkey_slices_from_wire_block(data: &[u8]) -> Result<Vec<&[u8]>> {
+    if data.len() < 80 {
+        return Err(ConsensusError::Serialization(Cow::Owned(
+            BlockParseError::InsufficientBytes.to_string(),
+        )));
+    }
+    let mut offset = 80;
+    let (tx_count, varint_len) = decode_varint(&data[offset..])?;
+    offset += varint_len;
+    if tx_count == 0 {
+        return Err(ConsensusError::Serialization(Cow::Owned(
+            BlockParseError::InvalidTransactionCount.to_string(),
+        )));
+    }
+    let mut scripts = Vec::new();
+    for _ in 0..tx_count {
+        let (tx_scripts, consumed) =
+            super::transaction::output_script_pubkey_slices_from_wire_tx(&data[offset..])?;
+        offset += consumed;
+        scripts.extend(tx_scripts);
+    }
+    Ok(scripts)
+}
+
 /// Serialize a complete block to Bitcoin wire format (including witness data)
 pub fn serialize_block_with_witnesses(
     block: &Block,
@@ -203,4 +228,78 @@ pub fn validate_block_serialized_size(
 ) -> bool {
     let serialized = serialize_block_with_witnesses(block, witnesses, include_witness);
     serialized.len() == provided_size
+}
+
+#[cfg(test)]
+mod output_script_tests {
+    use super::*;
+    use crate::types::{BlockHeader, OutPoint, Transaction, TransactionInput, TransactionOutput};
+
+    #[test]
+    fn wire_output_scripts_match_the_decoded_block() {
+        let legacy = Transaction {
+            version: 1,
+            inputs: crate::tx_inputs![TransactionInput {
+                prevout: OutPoint {
+                    hash: [1; 32],
+                    index: 0,
+                },
+                script_sig: vec![0x51, 0x52],
+                sequence: 0xffff_ffff,
+            }],
+            outputs: crate::tx_outputs![
+                TransactionOutput {
+                    value: 50,
+                    script_pubkey: vec![0x76, 0xa9],
+                },
+                TransactionOutput {
+                    value: 1,
+                    script_pubkey: vec![],
+                },
+            ],
+            lock_time: 0,
+        };
+        let segwit = Transaction {
+            version: 2,
+            inputs: crate::tx_inputs![TransactionInput {
+                prevout: OutPoint {
+                    hash: [2; 32],
+                    index: 1,
+                },
+                script_sig: vec![],
+                sequence: 0xffff_fffe,
+            }],
+            outputs: crate::tx_outputs![TransactionOutput {
+                value: 25,
+                script_pubkey: vec![0x00, 0x14, 0xaa],
+            }],
+            lock_time: 7,
+        };
+        let header = BlockHeader {
+            version: 1,
+            prev_block_hash: [0; 32],
+            merkle_root: [3; 32],
+            timestamp: 1_231_006_505,
+            bits: 0x1d00_ffff,
+            nonce: 9,
+        };
+        let block = crate::types::Block::from_parts(
+            header,
+            vec![legacy, segwit].into_boxed_slice(),
+        );
+        let witnesses = vec![vec![Vec::new()], vec![vec![vec![0x30, 0x01]]]];
+        let bytes = serialize_block_with_witnesses(&block, &witnesses, true);
+        let scripts = output_script_pubkey_slices_from_wire_block(&bytes).unwrap();
+        let (decoded, _) = deserialize_block_with_witnesses(&bytes).unwrap();
+        let expected: Vec<Vec<u8>> = decoded
+            .transactions
+            .iter()
+            .flat_map(|tx| tx.outputs.iter().map(|output| output.script_pubkey.clone()))
+            .collect();
+        assert_eq!(scripts, expected.iter().map(Vec::as_slice).collect::<Vec<_>>());
+        assert_eq!(
+            scripts,
+            vec![&[0x76, 0xa9][..], &[][..], &[0x00, 0x14, 0xaa][..]]
+        );
+    }
 }

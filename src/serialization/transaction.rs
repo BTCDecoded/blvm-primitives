@@ -464,6 +464,125 @@ pub fn deserialize_transaction_with_witness(
     Ok((tx, all_witnesses, offset))
 }
 
+/// Borrowed output scripts from one wire transaction.
+///
+/// The walk uses the same framing as [`deserialize_transaction_with_witness`].
+pub fn output_script_pubkey_slices_from_wire_tx(data: &[u8]) -> Result<(Vec<&[u8]>, usize)> {
+    if data.len() < 4 {
+        return Err(ConsensusError::Serialization(Cow::Owned(
+            TransactionParseError::InsufficientBytes.to_string(),
+        )));
+    }
+    let (is_segwit, input_count, mut offset, implicit_empty_outputs) =
+        read_tx_input_count_after_version(data, 4)?;
+    skip_input_bodies(data, &mut offset, input_count)?;
+    let scripts = take_output_scripts(data, &mut offset, implicit_empty_outputs)?;
+    if is_segwit {
+        skip_witness_bodies(data, &mut offset, input_count)?;
+    }
+    if data.len() < offset + 4 {
+        return Err(ConsensusError::Serialization(Cow::Owned(
+            TransactionParseError::InsufficientBytes.to_string(),
+        )));
+    }
+    offset += 4;
+    Ok((scripts, offset))
+}
+
+fn skip_input_bodies(data: &[u8], offset: &mut usize, count: u64) -> Result<()> {
+    for _ in 0..count {
+        if data.len() < *offset + 36 {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::InsufficientBytes.to_string(),
+            )));
+        }
+        *offset += 36;
+        let (script_len, varint_len) = decode_varint(&data[*offset..])?;
+        *offset += varint_len;
+        let script_sig_end = checked_slice_end(*offset, script_len)?;
+        if data.len() < script_sig_end {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::InsufficientBytes.to_string(),
+            )));
+        }
+        *offset = script_sig_end;
+        if data.len() < *offset + 4 {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::InsufficientBytes.to_string(),
+            )));
+        }
+        *offset += 4;
+    }
+    Ok(())
+}
+
+fn take_output_scripts<'a>(
+    data: &'a [u8],
+    offset: &mut usize,
+    implicit_empty_outputs: bool,
+) -> Result<Vec<&'a [u8]>> {
+    let output_count = if implicit_empty_outputs {
+        0
+    } else {
+        let (output_count, varint_len) = decode_varint(&data[*offset..])?;
+        *offset += varint_len;
+        if output_count > 1_000_000 {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::InvalidOutputCount.to_string(),
+            )));
+        }
+        output_count
+    };
+    let mut scripts = Vec::with_capacity(usize::try_from(output_count).unwrap_or(0));
+    for _ in 0..output_count {
+        if data.len() < *offset + 8 {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::InsufficientBytes.to_string(),
+            )));
+        }
+        *offset += 8;
+        let (script_len, varint_len) = decode_varint(&data[*offset..])?;
+        *offset += varint_len;
+        let script_end = checked_slice_end(*offset, script_len)?;
+        if data.len() < script_end {
+            return Err(ConsensusError::Serialization(Cow::Owned(
+                TransactionParseError::InsufficientBytes.to_string(),
+            )));
+        }
+        scripts.push(&data[*offset..script_end]);
+        *offset = script_end;
+    }
+    Ok(scripts)
+}
+
+fn skip_witness_bodies(data: &[u8], offset: &mut usize, input_count: u64) -> Result<()> {
+    let mut any_stack = false;
+    for _ in 0..input_count {
+        let (stack_count, varint_len) = decode_varint(&data[*offset..])?;
+        *offset += varint_len;
+        if stack_count > 0 {
+            any_stack = true;
+        }
+        for _ in 0..stack_count {
+            let (item_len, varint_len) = decode_varint(&data[*offset..])?;
+            *offset += varint_len;
+            let item_end = checked_slice_end(*offset, item_len)?;
+            if data.len() < item_end {
+                return Err(ConsensusError::Serialization(Cow::Owned(
+                    TransactionParseError::InsufficientBytes.to_string(),
+                )));
+            }
+            *offset = item_end;
+        }
+    }
+    if input_count > 0 && !any_stack {
+        return Err(ConsensusError::Serialization(Cow::Owned(
+            TransactionParseError::SuperfluousWitness.to_string(),
+        )));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
