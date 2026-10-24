@@ -283,10 +283,8 @@ mod output_script_tests {
             bits: 0x1d00_ffff,
             nonce: 9,
         };
-        let block = crate::types::Block::from_parts(
-            header,
-            vec![legacy, segwit].into_boxed_slice(),
-        );
+        let block =
+            crate::types::Block::from_parts(header, vec![legacy, segwit].into_boxed_slice());
         let witnesses = vec![vec![Vec::new()], vec![vec![vec![0x30, 0x01]]]];
         let bytes = serialize_block_with_witnesses(&block, &witnesses, true);
         let scripts = output_script_pubkey_slices_from_wire_block(&bytes).unwrap();
@@ -296,7 +294,10 @@ mod output_script_tests {
             .iter()
             .flat_map(|tx| tx.outputs.iter().map(|output| output.script_pubkey.clone()))
             .collect();
-        assert_eq!(scripts, expected.iter().map(Vec::as_slice).collect::<Vec<_>>());
+        assert_eq!(
+            scripts,
+            expected.iter().map(Vec::as_slice).collect::<Vec<_>>()
+        );
         assert_eq!(
             scripts,
             vec![&[0x76, 0xa9][..], &[][..], &[0x00, 0x14, 0xaa][..]]
