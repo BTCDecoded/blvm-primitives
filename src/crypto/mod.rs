@@ -14,7 +14,7 @@ use sha2::{Digest, Sha256};
 
 #[cfg(target_arch = "x86_64")]
 pub mod avx2_batch;
-#[cfg(target_arch = "x86_64")]
+// Portable equality with an x86_64 AVX2 fast path. CTV calls this on every arch.
 pub mod hash_compare;
 #[cfg(target_arch = "x86_64")]
 pub mod sha256_avx2;
