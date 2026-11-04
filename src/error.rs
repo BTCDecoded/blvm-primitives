@@ -55,6 +55,8 @@ pub enum ScriptErrorCode {
     UnsatisfiedLocktime,
     ValueOverflow,
     UnknownError,
+    /// A non-segwit script code contained the signature `FindAndDelete` removes.
+    SigFindAndDelete,
 }
 
 #[derive(Error, Debug, PartialEq, Clone)]
