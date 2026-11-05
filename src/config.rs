@@ -67,8 +67,9 @@ pub struct BlockValidationConfig {
     #[serde(default)]
     pub assume_valid_hash: Option<[u8; 32]>,
 
-    /// Minimum chain work: skip only when best_header_chainwork >= this
-    #[serde(default)]
+    /// Minimum chain work: skip only when best_header_chainwork >= this.
+    /// A config that omits it gets the mainnet floor, not 0 (0 lets any chain skip).
+    #[serde(default = "default_n_minimum_chain_work")]
     pub n_minimum_chain_work: u128,
 
     /// Number of recent headers for median time-past calculation (BIP113)
@@ -88,6 +89,25 @@ pub struct BlockValidationConfig {
     pub max_block_sigops_cost_override: u64,
 }
 
+/// Bitcoin Core v31.1 mainnet `defaultAssumeValid`, block 938343
+/// (`src/kernel/chainparams.cpp`, `CMainParams`): display hex
+/// `00000000000000000000ccebd6d74d9194d8dcdc1d177c478e094bfad51ba5ac`, stored here
+/// in internal (little-endian) byte order, the order `connect` compares against.
+pub const MAINNET_ASSUME_VALID_HEIGHT: u64 = 938_343;
+/// See [`MAINNET_ASSUME_VALID_HEIGHT`].
+pub const MAINNET_ASSUME_VALID_HASH: [u8; 32] = [
+    0xac, 0xa5, 0x1b, 0xd5, 0xfa, 0x4b, 0x09, 0x8e, 0x47, 0x7c, 0x17, 0x1d, 0xdc, 0xdc, 0xd8, 0x94,
+    0x91, 0x4d, 0xd7, 0xd6, 0xeb, 0xcc, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+];
+/// Bitcoin Core v31.1 mainnet `nMinimumChainWork`
+/// `0000000000000000000000000000000000000001128750f82f4c366153a3a030`
+/// (`src/kernel/chainparams.cpp`, `CMainParams`). Fits in 97 bits.
+pub const MAINNET_MINIMUM_CHAIN_WORK: u128 = 0x1_1287_50f8_2f4c_3661_53a3_a030;
+
+fn default_n_minimum_chain_work() -> u128 {
+    MAINNET_MINIMUM_CHAIN_WORK
+}
+
 fn default_median_time_past_headers() -> usize {
     11
 }
@@ -99,13 +119,17 @@ fn default_true() -> bool {
 impl Default for BlockValidationConfig {
     fn default() -> Self {
         Self {
-            // Matches Bitcoin Core's built-in hashAssumeValid (mainnet block 938343 in Core v28+).
-            // Core skips script/signature verification for all blocks below this height when the
-            // chain's total work meets nMinimumChainWork — BLVM must do the same to avoid false
-            // divergences on blocks that were accepted historically without script validation.
-            assume_valid_height: 938343,
+            // Bitcoin Core v31.1 mainnet defaultAssumeValid height and nMinimumChainWork.
+            // Scripts below the height are skipped only when the best header chain has at
+            // least this much work. No test network reaches the mainnet floor, so they
+            // verify every script unless the caller sets their own values.
+            //
+            // The hash stays unset here: connect rejects a block at the assume-valid
+            // height whose hash differs, and this default does not know the network. A
+            // mainnet caller sets `MAINNET_ASSUME_VALID_HASH` (blvm-node does).
+            assume_valid_height: MAINNET_ASSUME_VALID_HEIGHT,
             assume_valid_hash: None,
-            n_minimum_chain_work: 0,
+            n_minimum_chain_work: MAINNET_MINIMUM_CHAIN_WORK,
             median_time_past_headers: 11,
             enable_parallel_validation: true,
             coinbase_maturity_override: 0,
@@ -535,5 +559,53 @@ impl Default for AdvancedConfig {
             max_block_size_override: 0,
             enable_rbf: true,
         }
+    }
+}
+
+#[cfg(test)]
+mod assume_valid_default_tests {
+    use super::*;
+
+    /// Display hex to internal byte order.
+    fn from_display(hex: &str) -> [u8; 32] {
+        let mut out = [0u8; 32];
+        for (i, b) in out.iter_mut().enumerate() {
+            *b = u8::from_str_radix(&hex[2 * i..2 * i + 2], 16).unwrap();
+        }
+        out.reverse();
+        out
+    }
+
+    /// Values copied from Bitcoin Core v31.1 `src/kernel/chainparams.cpp` (`CMainParams`).
+    #[test]
+    fn mainnet_constants_match_core_v31_1() {
+        assert_eq!(MAINNET_ASSUME_VALID_HEIGHT, 938_343);
+        assert_eq!(
+            MAINNET_ASSUME_VALID_HASH,
+            from_display("00000000000000000000ccebd6d74d9194d8dcdc1d177c478e094bfad51ba5ac")
+        );
+        let core_min_work = "0000000000000000000000000000000000000001128750f82f4c366153a3a030";
+        assert!(core_min_work[..32].bytes().all(|c| c == b'0'));
+        assert_eq!(
+            MAINNET_MINIMUM_CHAIN_WORK,
+            u128::from_str_radix(&core_min_work[32..], 16).unwrap()
+        );
+    }
+
+    /// Minimum work 0 lets any chain with any work skip scripts below the height.
+    #[test]
+    fn default_minimum_chain_work_is_the_mainnet_floor() {
+        let cfg = BlockValidationConfig::default();
+        assert_eq!(cfg.assume_valid_height, MAINNET_ASSUME_VALID_HEIGHT);
+        assert_eq!(cfg.n_minimum_chain_work, MAINNET_MINIMUM_CHAIN_WORK);
+        assert_ne!(cfg.n_minimum_chain_work, 0);
+    }
+
+    /// A config file that sets only the height must not drop the floor to 0.
+    #[test]
+    fn omitted_minimum_chain_work_deserializes_to_the_floor() {
+        let cfg: BlockValidationConfig =
+            serde_json::from_str(r#"{"assume_valid_height": 900000}"#).unwrap();
+        assert_eq!(cfg.n_minimum_chain_work, MAINNET_MINIMUM_CHAIN_WORK);
     }
 }
