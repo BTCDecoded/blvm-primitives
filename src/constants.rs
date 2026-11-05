@@ -206,8 +206,8 @@ pub const BIP34_ACTIVATION_TESTNET: u64 = 21_111;
 
 /// BIP34: Block Height in Coinbase - Regtest activation height
 ///
-/// Always active on regtest (block 0)
-pub const BIP34_ACTIVATION_REGTEST: u64 = 0;
+/// Bitcoin Core activates BIP34 at height 1 on regtest, so the version-1 genesis stays valid.
+pub const BIP34_ACTIVATION_REGTEST: u64 = 1;
 
 /// BIP66: Strict DER Signatures - Mainnet activation height
 ///
@@ -224,8 +224,8 @@ pub const BIP66_ACTIVATION_TESTNET: u64 = 330_776;
 
 /// BIP66: Strict DER Signatures - Regtest activation height
 ///
-/// Always active on regtest (block 0)
-pub const BIP66_ACTIVATION_REGTEST: u64 = 0;
+/// Bitcoin Core activates BIP66 at height 1 on regtest.
+pub const BIP66_ACTIVATION_REGTEST: u64 = 1;
 
 /// BIP65: OP_CHECKLOCKTIMEVERIFY (CLTV) - Mainnet activation height
 ///
@@ -237,6 +237,11 @@ pub const BIP65_ACTIVATION_MAINNET: u64 = 388_381;
 ///
 /// Reference: Bitcoin Core `consensus.BIP65Height` for `CTestNetParams` (`kernel/chainparams.cpp`).
 pub const BIP65_ACTIVATION_TESTNET: u64 = 581_885;
+
+/// BIP65: OP_CHECKLOCKTIMEVERIFY (CLTV) - Regtest activation height
+///
+/// Bitcoin Core activates BIP65 at height 1 on regtest.
+pub const BIP65_ACTIVATION_REGTEST: u64 = 1;
 
 /// BIP112/BIP113: CHECKSEQUENCEVERIFY (CSV) - Mainnet activation height
 ///
@@ -250,8 +255,10 @@ pub const BIP112_CSV_ACTIVATION_MAINNET: u64 = 419_328;
 /// Testnet CSV activates later than mainnet (770112), unlike some other deployments.
 pub const BIP112_CSV_ACTIVATION_TESTNET: u64 = 770_112;
 
-/// BIP112/BIP113: CSV - Regtest (active from genesis for typical regtest chains)
-pub const BIP112_CSV_ACTIVATION_REGTEST: u64 = 0;
+/// BIP112/BIP113: CSV - Regtest activation height
+///
+/// Bitcoin Core activates CSV at height 1 on regtest.
+pub const BIP112_CSV_ACTIVATION_REGTEST: u64 = 1;
 
 /// BIP147: NULLDUMMY Enforcement - Mainnet activation height
 ///
