@@ -70,26 +70,6 @@ pub struct BlockValidationConfig {
     /// Minimum chain work: skip only when best_header_chainwork >= this
     #[serde(default)]
     pub n_minimum_chain_work: u128,
-
-    /// Number of recent headers for median time-past calculation (BIP113)
-    #[serde(default = "default_median_time_past_headers")]
-    pub median_time_past_headers: usize,
-
-    /// Enable parallel transaction validation
-    #[serde(default = "default_true")]
-    pub enable_parallel_validation: bool,
-
-    /// Coinbase maturity override (for testing only)
-    #[serde(default)]
-    pub coinbase_maturity_override: u64,
-
-    /// Maximum block sigop cost override (for testing only)
-    #[serde(default)]
-    pub max_block_sigops_cost_override: u64,
-}
-
-fn default_median_time_past_headers() -> usize {
-    11
 }
 
 fn default_true() -> bool {
@@ -106,10 +86,6 @@ impl Default for BlockValidationConfig {
             assume_valid_height: 938343,
             assume_valid_hash: None,
             n_minimum_chain_work: 0,
-            median_time_past_headers: 11,
-            enable_parallel_validation: true,
-            coinbase_maturity_override: 0,
-            max_block_sigops_cost_override: 0,
         }
     }
 }
