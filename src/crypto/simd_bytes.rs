@@ -9,13 +9,16 @@
 /// copy for smaller arrays or non-AVX2 systems.
 ///
 /// # Arguments
-/// * `dst` - Destination slice (must be at least as long as `src`)
+/// * `dst` - Destination slice
 /// * `src` - Source slice
 ///
-/// # Safety
-/// Caller must ensure `dst.len() >= src.len()` to avoid buffer overflows.
+/// Panics when `dst` is shorter than `src`, on every target.
 #[inline]
 pub fn copy_bytes_simd(dst: &mut [u8], src: &[u8]) {
+    if dst.len() < src.len() {
+        dst[..src.len()].copy_from_slice(src);
+        return;
+    }
     #[cfg(all(target_arch = "x86_64", feature = "production"))]
     {
         // Use SIMD for large arrays (threshold: 64 bytes)
@@ -85,6 +88,14 @@ mod tests {
         let mut dst = vec![0u8; 128];
         copy_bytes_simd(&mut dst, &src);
         assert_eq!(dst, src);
+    }
+
+    #[test]
+    #[should_panic]
+    fn short_destination_panics() {
+        let src = [1u8; 80];
+        let mut dst = [0u8; 16];
+        copy_bytes_simd(&mut dst, &src);
     }
 
     #[test]
