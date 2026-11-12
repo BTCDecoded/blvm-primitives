@@ -1,8 +1,8 @@
 //! Test-line QA: serialization round-trip and a truncated buffer.
 
 use blvm_primitives::{
-    Block, BlockHeader, ConsensusError, OutPoint, Transaction, TransactionInput,
-    TransactionOutput, decode_varint, deserialize_block_header, deserialize_block_with_witnesses,
+    Block, BlockHeader, ConsensusError, OutPoint, Transaction, TransactionInput, TransactionOutput,
+    decode_varint, deserialize_block_header, deserialize_block_with_witnesses,
     deserialize_transaction, encode_varint, serialize_block, serialize_block_header,
     serialize_transaction,
 };
