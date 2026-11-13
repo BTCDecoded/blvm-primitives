@@ -3,8 +3,16 @@ name: CI
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - ".github/**"
+      - "docs/**"
+      - "**/*.md"
   pull_request:
     branches: [ main, develop ]
+    paths-ignore:
+      - ".github/**"
+      - "docs/**"
+      - "**/*.md"
   workflow_dispatch:
 
 permissions:
@@ -15,17 +23,22 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: '1'
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     name: Test
     runs-on: [self-hosted, Linux, X64, builds]
 
     if: |
-      github.event_name != 'push' ||
+      (github.event_name != 'pull_request' || (!contains(github.event.pull_request.title, '[skip ci]') && !contains(github.event.pull_request.title, '[ci skip]') && !contains(github.event.pull_request.title, '[no ci]'))) &&
+      (github.event_name != 'push' ||
       github.event.head_commit == null ||
       (!contains(github.event.head_commit.message, '[skip ci]') &&
        !contains(github.event.head_commit.message, '[ci skip]') &&
-       !contains(github.event.head_commit.message, '[no ci]'))
+       !contains(github.event.head_commit.message, '[no ci]')))
     steps:
       - uses: actions/checkout@v6
 
@@ -48,9 +61,11 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build
+        if: github.event_name != 'pull_request'
         run: cargo build --release --all-features
 
       - name: Test
+        if: github.event_name != 'pull_request'
         run: cargo test --all-features
 
       - name: Clippy
