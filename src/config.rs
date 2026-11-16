@@ -475,9 +475,8 @@ pub struct AdvancedConfig {
     #[serde(default)]
     pub custom_checkpoints: Vec<u64>,
 
-    /// Maximum depth for chain reorganization (safety limit)
-    /// Prevents extremely deep reorganizations that could be DoS attacks
-    /// Default: 100 blocks
+    /// Accepted from config and from `BLVM_MAX_REORG_DEPTH`. Reorganization does not read it.
+    /// A heavier valid chain is followed with no depth cap. Default 100 is not a consensus limit.
     #[serde(default = "default_max_reorg_depth")]
     pub max_reorg_depth: u64,
 
