@@ -276,4 +276,3 @@ fn decode_varint_rejects_every_non_minimal_three_byte_value() {
         expect_invalid(case);
     }
 }
-
