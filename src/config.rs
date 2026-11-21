@@ -6,6 +6,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::types::Network;
+
 /// Network message size limits configuration
 ///
 /// These limits protect against DoS attacks by bounding the size of network messages.
@@ -67,9 +69,29 @@ pub struct BlockValidationConfig {
     #[serde(default)]
     pub assume_valid_hash: Option<[u8; 32]>,
 
-    /// Minimum chain work: skip only when best_header_chainwork >= this
+    /// Minimum chain work: skip only when best_header_chainwork >= this.
+    ///
+    /// `Default` and a serde record that omits this field leave it at 0: this
+    /// struct does not carry a network. Use [`BlockValidationConfig::for_network`]
+    /// or [`minimum_chain_work_for_network`] when the network is known.
     #[serde(default)]
     pub n_minimum_chain_work: u128,
+}
+
+/// Chain-work floor for assume-valid script skipping on `network`.
+///
+/// These values match `blvm-node`'s `minimum_chain_work_for_network`. Mainnet
+/// is `0x1128750f82f4c366153a3a030`. Testnet, testnet4, and signet use those
+/// networks' own floors, which are below the mainnet floor. Regtest is 0.
+/// Each value fits in `u128`.
+pub fn minimum_chain_work_for_network(network: Network) -> u128 {
+    match network {
+        Network::Mainnet => 0x1128750f82f4c366153a3a030,
+        Network::Testnet => 0x17dde1c649f3708d14b6,
+        Network::Testnet4 => 0x9a0fe15d0177d086304,
+        Network::Signet => 0xb463ea0a4b8,
+        Network::Regtest => 0,
+    }
 }
 
 fn default_true() -> bool {
@@ -86,6 +108,19 @@ impl Default for BlockValidationConfig {
             assume_valid_height: 938343,
             assume_valid_hash: None,
             n_minimum_chain_work: 0,
+        }
+    }
+}
+
+impl BlockValidationConfig {
+    /// Config for a known network, with that network's chain-work floor.
+    ///
+    /// Other fields come from [`Default`]. `Default` itself is network-agnostic
+    /// and keeps `n_minimum_chain_work` at 0.
+    pub fn for_network(network: Network) -> Self {
+        Self {
+            n_minimum_chain_work: minimum_chain_work_for_network(network),
+            ..Self::default()
         }
     }
 }
@@ -511,5 +546,60 @@ impl Default for AdvancedConfig {
             max_block_size_override: 0,
             enable_rbf: true,
         }
+    }
+}
+
+#[cfg(test)]
+mod minimum_chain_work_tests {
+    use super::*;
+
+    /// Same mainnet floor as `blvm-node`'s `minimum_chain_work_for_network`.
+    const MAINNET_MINIMUM_CHAIN_WORK: u128 = 0x1128750f82f4c366153a3a030;
+
+    #[test]
+    fn mainnet_floor_matches_node_constant() {
+        assert_eq!(
+            minimum_chain_work_for_network(Network::Mainnet),
+            MAINNET_MINIMUM_CHAIN_WORK
+        );
+        let cfg = BlockValidationConfig::for_network(Network::Mainnet);
+        assert_eq!(cfg.n_minimum_chain_work, MAINNET_MINIMUM_CHAIN_WORK);
+    }
+
+    #[test]
+    fn other_networks_do_not_inherit_the_mainnet_floor() {
+        assert_eq!(
+            minimum_chain_work_for_network(Network::Testnet),
+            0x17dde1c649f3708d14b6
+        );
+        assert_eq!(
+            minimum_chain_work_for_network(Network::Testnet4),
+            0x9a0fe15d0177d086304
+        );
+        assert_eq!(
+            minimum_chain_work_for_network(Network::Signet),
+            0xb463ea0a4b8
+        );
+        assert_eq!(minimum_chain_work_for_network(Network::Regtest), 0);
+        assert_eq!(
+            BlockValidationConfig::for_network(Network::Regtest).n_minimum_chain_work,
+            0
+        );
+        assert_eq!(
+            BlockValidationConfig::for_network(Network::Testnet).n_minimum_chain_work,
+            0x17dde1c649f3708d14b6
+        );
+        assert!(minimum_chain_work_for_network(Network::Testnet) < MAINNET_MINIMUM_CHAIN_WORK);
+        assert!(minimum_chain_work_for_network(Network::Testnet4) < MAINNET_MINIMUM_CHAIN_WORK);
+        assert!(minimum_chain_work_for_network(Network::Signet) < MAINNET_MINIMUM_CHAIN_WORK);
+    }
+
+    #[test]
+    fn default_and_omitted_serde_field_stay_unset() {
+        assert_eq!(BlockValidationConfig::default().n_minimum_chain_work, 0);
+        let cfg: BlockValidationConfig =
+            serde_json::from_str(r#"{"assume_valid_height": 900000}"#).unwrap();
+        assert_eq!(cfg.n_minimum_chain_work, 0);
+        assert_eq!(cfg.assume_valid_height, 900000);
     }
 }
