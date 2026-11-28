@@ -23,10 +23,9 @@ use sha2::{Digest, Sha256};
 /// # Performance
 /// - 8-way parallel processing for batches of 8 or more
 /// - Falls back to sequential for smaller batches or non-AVX2 CPUs
-#[cfg(target_arch = "x86_64")]
 pub fn batch_sha256_avx2(inputs: &[&[u8]]) -> Vec<[u8; 32]> {
-    // The 8-way helper is SHA256d. This function is single SHA256, matching the
-    // non-AVX2 path. Calling the helper here hashed full chunks twice.
+    // The 8-way helper is SHA256d. This function is single SHA256.
+    // Calling the helper here hashed full chunks twice.
     inputs
         .iter()
         .map(|input| {
@@ -56,19 +55,4 @@ mod tests {
             assert_ne!(hash.as_slice(), twice.as_slice());
         }
     }
-}
-
-/// Fallback for non-x86_64 architectures
-#[cfg(not(target_arch = "x86_64"))]
-pub fn batch_sha256_avx2(inputs: &[&[u8]]) -> Vec<[u8; 32]> {
-    // Sequential processing for non-x86_64
-    inputs
-        .iter()
-        .map(|input| {
-            let hash = Sha256::digest(input);
-            let mut result = [0u8; 32];
-            result.copy_from_slice(&hash);
-            result
-        })
-        .collect()
 }
